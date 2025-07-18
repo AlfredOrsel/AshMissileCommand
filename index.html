@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clean PixiJS Project</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #000;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+
+      #app {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.0.0/dist/pixi.min.js"></script>
+    <script>
+      // Create the PixiJS application
+      const app = new PIXI.Application();
+      
+      // Initialize the application
+      app.init({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        backgroundColor: 0x000000, // Black background
+        antialias: true,
+      }).then(() => {
+        // Add the canvas to the DOM after initialization
+        document.getElementById('app').appendChild(app.canvas);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+          app.renderer.resize(window.innerWidth, window.innerHeight);
+        });
+
+        // Add to window for debugging
+        window.app = app;
+
+
+        // --- MULTIPLE BUILDINGS AND BUNKER SETUP ---
+        const buildingPieces = [];
+        const explosionParticles = [];
+        // Track active growing player explosions
+        const activePlayerExplosions = [];
+        const rockets = [];
+
+        // Building and bunker dimensions
+        const buildingWidth = 50;
+        const buildingHeight = 75;
+        const pieceWidth = buildingWidth / 4;
+        const pieceHeight = buildingHeight / 4;
+        const bunkerWidth = buildingWidth * 2;
+        const bunkerHeight = 38;
+        const bottomY = app.screen.height;
+        const centerX = app.screen.width / 2;
+
+        // Calculate building positions
+        const numBuildingsPerSide = 3;
+        const totalBuildings = 6;
+        const leftSpace = centerX - bunkerWidth / 2;
+        const rightSpace = app.screen.width - (centerX + bunkerWidth / 2);
+        const leftSpacing = leftSpace / (numBuildingsPerSide + 1);
+        const rightSpacing = rightSpace / (numBuildingsPerSide + 1);
+
+        // Store all building centers
+        const buildingCenters = [];
+        // Left side buildings
+        for (let i = 1; i <= numBuildingsPerSide; i++) {
+          buildingCenters.push(leftSpacing * i - buildingWidth / 2);
+        }
+        // Right side buildings
+        for (let i = 1; i <= numBuildingsPerSide; i++) {
+          buildingCenters.push(centerX + bunkerWidth / 2 + rightSpacing * i - buildingWidth / 2);
+        }
+
+        // Draw all buildings (each as 16 pieces, roof, antennas)
+        function drawBuilding(centerX, bottomY) {
+          const pieces = [];
+          const pieceWidth = buildingWidth / 4;
+          const pieceHeight = buildingHeight / 4;
+          // Roof
+          const roofHeight = 12;
+          const roofWidth = buildingWidth + 10;
+          const roofX = centerX - roofWidth / 2;
+          const roofY = bottomY - buildingHeight - roofHeight + 2;
+          // Left roof part
+          const roofLeft = new PIXI.Graphics();
+          roofLeft.beginFill(0x222244);
+          roofLeft.lineStyle(2, 0x00ffff, 0.7);
+          roofLeft.moveTo(0, roofHeight);
+          roofLeft.lineTo(roofWidth * 0.18, 0);
+          roofLeft.lineTo(roofWidth * 0.5, 0);
+          roofLeft.lineTo(roofWidth * 0.5, roofHeight);
+          roofLeft.lineTo(0, roofHeight);
+          roofLeft.endFill();
+          roofLeft.x = roofX;
+          roofLeft.y = roofY;
+          roofLeft.gridX = -1;
+          roofLeft.gridY = -1;
+          roofLeft.originalX = roofX + roofWidth * 0.25;
+          roofLeft.originalY = roofY + roofHeight / 2;
+          pieces.push(roofLeft);
+          app.stage.addChild(roofLeft);
+          // Right roof part
+          const roofRight = new PIXI.Graphics();
+          roofRight.beginFill(0x222244);
+          roofRight.lineStyle(2, 0x00ffff, 0.7);
+          roofRight.moveTo(roofWidth * 0.5, roofHeight);
+          roofRight.lineTo(roofWidth * 0.5, 0);
+          roofRight.lineTo(roofWidth * 0.82, 0);
+          roofRight.lineTo(roofWidth, roofHeight);
+          roofRight.lineTo(roofWidth * 0.5, roofHeight);
+          roofRight.endFill();
+          roofRight.x = roofX;
+          roofRight.y = roofY;
+          roofRight.gridX = -2;
+          roofRight.gridY = -2;
+          roofRight.originalX = roofX + roofWidth * 0.75;
+          roofRight.originalY = roofY + roofHeight / 2;
+          pieces.push(roofRight);
+          app.stage.addChild(roofRight);
+          // 16 grid pieces
+          for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+              const piece = new PIXI.Graphics();
+              const pieceX = centerX - buildingWidth / 2 + col * pieceWidth;
+              const pieceY = bottomY - buildingHeight + row * pieceHeight;
+              piece.x = pieceX;
+              piece.y = pieceY;
+              piece.beginFill(0x1a1a2e);
+              piece.drawRect(0, 0, pieceWidth, pieceHeight);
+              piece.endFill();
+              piece.lineStyle(1, 0x00ffff);
+              if (col === 0) { piece.moveTo(0, 0); piece.lineTo(0, pieceHeight); }
+              if (col === 3) { piece.moveTo(pieceWidth, 0); piece.lineTo(pieceWidth, pieceHeight); }
+              if (row === 0) { piece.moveTo(0, 0); piece.lineTo(pieceWidth, 0); }
+              if (row === 3) { piece.moveTo(0, pieceHeight); piece.lineTo(pieceWidth, pieceHeight); }
+              if (row === 1 || row === 2) { piece.moveTo(0, pieceHeight); piece.lineTo(pieceWidth, pieceHeight); }
+              if (col === 1 || col === 2) { piece.moveTo(pieceWidth, 0); piece.lineTo(pieceWidth, pieceHeight); }
+              piece.lineStyle(0);
+              if ((row === 0 && (col === 1 || col === 2)) ||
+                (row === 1 && (col === 1 || col === 2)) ||
+                (row === 2 && (col === 1 || col === 2))) {
+                piece.beginFill(0x00ccff);
+                piece.alpha = 0.85;
+                const windowMargin = 2;
+                piece.drawRect(windowMargin, windowMargin, pieceWidth - windowMargin * 2, pieceHeight - windowMargin * 2);
+                piece.endFill();
+                piece.alpha = 1.0;
+              }
+              if (col === 0 && (row === 1 || row === 2)) {
+                piece.beginFill(0x00ff88);
+                piece.drawRect(-3, 0, 3, pieceHeight);
+                piece.endFill();
+              }
+              if (col === 3 && (row === 1 || row === 2)) {
+                piece.beginFill(0x00ff88);
+                piece.drawRect(pieceWidth, 0, 3, pieceHeight);
+                piece.endFill();
+              }
+              piece.gridX = col;
+              piece.gridY = row;
+              piece.originalX = pieceX + pieceWidth / 2;
+              piece.originalY = pieceY + pieceHeight / 2;
+              pieces.push(piece);
+              app.stage.addChild(piece);
+            }
+          }
+          // Antennas
+          function createAntenna(x, y, height, color, tipColor) {
+            const antenna = new PIXI.Graphics();
+            antenna.lineStyle(3, color, 0.8);
+            antenna.moveTo(0, 0);
+            antenna.lineTo(0, -height);
+            antenna.beginFill(tipColor);
+            antenna.drawCircle(0, -height, 4);
+            antenna.endFill();
+            antenna.x = x;
+            antenna.y = y;
+            antenna.alpha = 0.85;
+            antenna.originalX = x;
+            antenna.originalY = y - height / 2;
+            antenna.isAntenna = true;
+            pieces.push(antenna);
+            app.stage.addChild(antenna);
+          }
+          createAntenna(roofX + 8, roofY + 2, 28, 0x00ffff, 0x00ffff);
+          createAntenna(roofX + roofWidth - 8, roofY + 2, 28, 0xff00ff, 0xff00ff);
+          // Add all to global buildingPieces
+          buildingPieces.push(...pieces);
+        }
+
+        // Draw all 6 buildings
+        for (let i = 0; i < buildingCenters.length; i++) {
+          drawBuilding(buildingCenters[i] + buildingWidth / 2, bottomY);
+        }
+
+        // Draw a satellite dish on the left pole of the bunker
+        function drawDishOnLeftPole() {
+          const dish = new PIXI.Graphics();
+          // Dish geometry
+          const radius = 24;
+          const startAngle = Math.PI * 1.2;
+          const endAngle = Math.PI * 1.8;
+          dish.lineStyle(3, 0xcccccc, 1.0);
+          dish.beginFill(0xdddddd, 0.85);
+          dish.arc(0, 0, radius, startAngle, endAngle, false);
+          // Draw the straight (hollow) side
+          const sx = Math.cos(startAngle) * radius;
+          const sy = Math.sin(startAngle) * radius;
+          const ex = Math.cos(endAngle) * radius;
+          const ey = Math.sin(endAngle) * radius;
+          dish.lineTo(ex, ey);
+          dish.lineStyle(0);
+          dish.endFill();
+
+          // Calculate flat side angle and rod length
+          const flatAngle = Math.atan2(ey - sy, ex - sx);
+          const rodLength = 20;
+          const mx = (sx + ex) / 2;
+          const my = (sy + ey) / 2;
+          const rodWidth = 3;
+          const rodAngle = flatAngle + Math.PI / 2;
+          const rodStartX = mx;
+          const rodStartY = my;
+          const rodEndX = mx + Math.cos(rodAngle) * rodLength;
+          const rodEndY = my + Math.sin(rodAngle) * rodLength;
+          const perpX = Math.cos(rodAngle + Math.PI / 2) * (rodWidth / 2);
+          const perpY = Math.sin(rodAngle + Math.PI / 2) * (rodWidth / 2);
+          const p1x = rodStartX + perpX;
+          const p1y = rodStartY + perpY;
+          const p2x = rodStartX - perpX;
+          const p2y = rodStartY - perpY;
+          const p3x = rodEndX - perpX;
+          const p3y = rodEndY - perpY;
+          const p4x = rodEndX + perpX;
+          const p4y = rodEndY + perpY;
+          dish.beginFill(0xbbbbbb);
+          dish.moveTo(p1x, p1y);
+          dish.lineTo(p2x, p2y);
+          dish.lineTo(p3x, p3y);
+          dish.lineTo(p4x, p4y);
+          dish.closePath();
+          dish.endFill();
+
+          // Red dot receiver with pulsating glow
+          const receiverGlow = new PIXI.Graphics();
+          const receiverDot = new PIXI.Graphics();
+          const receiverRadius = 4;
+          const glowBaseRadius = 5;
+          const glowColor = 0xff2222;
+          const dotColor = 0xff0000;
+          receiverGlow.x = rodEndX;
+          receiverGlow.y = rodEndY;
+          receiverDot.x = rodEndX;
+          receiverDot.y = rodEndY;
+          receiverGlow.beginFill(glowColor, 0.4);
+          receiverGlow.drawCircle(0, 0, glowBaseRadius);
+          receiverGlow.endFill();
+          receiverDot.beginFill(dotColor, 1.0);
+          receiverDot.drawCircle(0, 0, receiverRadius);
+          receiverDot.endFill();
+          dish.addChild(receiverGlow);
+          dish.addChild(receiverDot);
+
+          let glowTicker = 0;
+          app.ticker.add(() => {
+            glowTicker += 0.04;
+            const pulse = 0.5 + 0.5 * Math.sin(glowTicker);
+            const glowAlpha = 0.3 + 0.4 * pulse;
+            const glowRadius = glowBaseRadius + 2 * pulse;
+            receiverGlow.clear();
+            receiverGlow.beginFill(glowColor, glowAlpha);
+            receiverGlow.drawCircle(0, 0, glowRadius);
+            receiverGlow.endFill();
+          });
+
+          // --- Placement and rotation ---
+          // Left pole top coordinates (same as bunker pole)
+          const poleWidth = 4;
+          const poleHeight = 38;
+          const poleLeftX = centerX - bunkerWidth / 2 - 6 + poleWidth / 2;
+          const poleLeftY = bottomY - bunkerHeight - 10 - poleHeight;
+
+
+          // We want the flat side (with the rod) to point 45 degrees to the top left.
+          // The flat side is from (sx,sy) to (ex,ey), midpoint (mx,my), and its outward normal is rodAngle.
+          // So, set dish.rotation so that rodAngle (in local dish space) aligns with -45 degrees (top left).
+          // rodAngle in local dish space is flatAngle + Math.PI/2, so:
+          // dish.rotation = -Math.PI/4 - rodAngle = -Math.PI/4 - (flatAngle + Math.PI/2)
+          // But Pixi rotates the whole dish, so to make the rod point -45deg, set:
+          // To point the rod 45 degrees to the top left, use +Math.PI/4 (135deg, counterclockwise from x axis)
+          const desiredRodAngle = -3 * Math.PI / 4; // 135deg (top left)
+          const dishRotation = desiredRodAngle - rodAngle;
+          dish.rotation = dishRotation;
+
+          // Now, after rotation, the round side midpoint must connect to the top of the pole.
+          // Compute the rotated position of the round side midpoint
+          const roundMidAngle = (startAngle + endAngle) / 2;
+          const roundMidX = Math.cos(roundMidAngle) * radius;
+          const roundMidY = Math.sin(roundMidAngle) * radius;
+          // Rotate this point by dishRotation
+          const cosR = Math.cos(dishRotation);
+          const sinR = Math.sin(dishRotation);
+          const roundMidXr = roundMidX * cosR - roundMidY * sinR;
+          const roundMidYr = roundMidX * sinR + roundMidY * cosR;
+          // Place dish so that (dish.x + roundMidXr, dish.y + roundMidYr) = (poleLeftX, poleLeftY)
+          dish.x = poleLeftX - roundMidXr;
+          dish.y = poleLeftY - roundMidYr;
+
+          app.stage.addChild(dish);
+        }
+        drawDishOnLeftPole();
+
+        // Draw a satellite dish on the right pole of the bunker, mirrored
+        function drawDishOnRightPole() {
+          const dish = new PIXI.Graphics();
+          // Use the same geometry as the left dish
+          const radius = 24;
+          const startAngle = Math.PI * 1.2;
+          const endAngle = Math.PI * 1.8;
+          dish.lineStyle(3, 0xcccccc, 1.0);
+          dish.beginFill(0xdddddd, 0.85);
+          dish.arc(0, 0, radius, startAngle, endAngle, false);
+          // Draw the straight (hollow) side
+          const sx = Math.cos(startAngle) * radius;
+          const sy = Math.sin(startAngle) * radius;
+          const ex = Math.cos(endAngle) * radius;
+          const ey = Math.sin(endAngle) * radius;
+          dish.lineTo(ex, ey);
+          dish.lineStyle(0);
+          dish.endFill();
+
+          // Calculate flat side angle and rod length
+          const flatAngle = Math.atan2(ey - sy, ex - sx);
+          const rodLength = 20;
+          const mx = (sx + ex) / 2;
+          const my = (sy + ey) / 2;
+          const rodWidth = 3;
+          const rodAngle = flatAngle + Math.PI / 2;
+          const rodStartX = mx;
+          const rodStartY = my;
+          const rodEndX = mx + Math.cos(rodAngle) * rodLength;
+          const rodEndY = my + Math.sin(rodAngle) * rodLength;
+          const perpX = Math.cos(rodAngle + Math.PI / 2) * (rodWidth / 2);
+          const perpY = Math.sin(rodAngle + Math.PI / 2) * (rodWidth / 2);
+          const p1x = rodStartX + perpX;
+          const p1y = rodStartY + perpY;
+          const p2x = rodStartX - perpX;
+          const p2y = rodStartY - perpY;
+          const p3x = rodEndX - perpX;
+          const p3y = rodEndY - perpY;
+          const p4x = rodEndX + perpX;
+          const p4y = rodEndY + perpY;
+          dish.beginFill(0xbbbbbb);
+          dish.moveTo(p1x, p1y);
+          dish.lineTo(p2x, p2y);
+          dish.lineTo(p3x, p3y);
+          dish.lineTo(p4x, p4y);
+          dish.closePath();
+          dish.endFill();
+
+          // Red dot receiver with pulsating glow
+          const receiverGlow = new PIXI.Graphics();
+          const receiverDot = new PIXI.Graphics();
+          const receiverRadius = 4;
+          const glowBaseRadius = 5;
+          const glowColor = 0xff2222;
+          const dotColor = 0xff0000;
+          receiverGlow.x = rodEndX;
+          receiverGlow.y = rodEndY;
+          receiverDot.x = rodEndX;
+          receiverDot.y = rodEndY;
+          receiverGlow.beginFill(glowColor, 0.4);
+          receiverGlow.drawCircle(0, 0, glowBaseRadius);
+          receiverGlow.endFill();
+          receiverDot.beginFill(dotColor, 1.0);
+          receiverDot.drawCircle(0, 0, receiverRadius);
+          receiverDot.endFill();
+          dish.addChild(receiverGlow);
+          dish.addChild(receiverDot);
+
+          let glowTicker = 0;
+          app.ticker.add(() => {
+            glowTicker += 0.04;
+            const pulse = 0.5 + 0.5 * Math.sin(glowTicker);
+            const glowAlpha = 0.3 + 0.4 * pulse;
+            const glowRadius = glowBaseRadius + 2 * pulse;
+            receiverGlow.clear();
+            receiverGlow.beginFill(glowColor, glowAlpha);
+            receiverGlow.drawCircle(0, 0, glowRadius);
+            receiverGlow.endFill();
+          });
+
+          // --- Placement and rotation ---
+          // Right pole top coordinates (same as bunker pole)
+          const poleWidth = 4;
+          const poleHeight = 38;
+          const poleRightX = centerX + bunkerWidth / 2 + 6 - poleWidth / 2;
+          const poleRightY = bottomY - bunkerHeight - 10 - poleHeight;
+
+          // We want the flat side (with the rod) to point 45 degrees to the top right.
+          // So, set dish.rotation so that rodAngle aligns with +45deg (top right)
+          const desiredRodAngle = -Math.PI / 4; // -45deg (top right)
+          const dishRotation = desiredRodAngle - rodAngle;
+          dish.rotation = dishRotation;
+
+          // Now, after rotation, the round side midpoint must connect to the top of the pole.
+          const roundMidAngle = (startAngle + endAngle) / 2;
+          const roundMidX = Math.cos(roundMidAngle) * radius;
+          const roundMidY = Math.sin(roundMidAngle) * radius;
+          const cosR = Math.cos(dishRotation);
+          const sinR = Math.sin(dishRotation);
+          const roundMidXr = roundMidX * cosR - roundMidY * sinR;
+          const roundMidYr = roundMidX * sinR + roundMidY * cosR;
+          dish.x = poleRightX - roundMidXr;
+          dish.y = poleRightY - roundMidYr;
+
+          app.stage.addChild(dish);
+        }
+        drawDishOnRightPole();
+
+        // Draw the central bunker as a military structure
+        function drawBunker(centerX, bottomY) {
+          // --- TOP TRAPEZOID STRUCTURE ---
+          // Smaller trapezoid dimensions
+          const trapezoidWidth = bunkerWidth * 0.45;
+          const trapezoidHeight = 22;
+          const trapezoidSlope = 18; // match bunker base slope
+          // Place directly on top of the bunker roof
+          const roofTopY = bottomY - bunkerHeight - 10; // roof top (roof is 14px tall)
+          const trapezoidBaseY = roofTopY;
+          const trapezoidTopY = roofTopY - trapezoidHeight;
+          const trapezoidLeftX = centerX - trapezoidWidth / 2;
+          const trapezoidRightX = centerX + trapezoidWidth / 2;
+          // Outer border
+          const topTrapezoid = new PIXI.Graphics();
+          topTrapezoid.lineStyle(6, 0x888c99, 1.0);
+          topTrapezoid.beginFill(0x33363a); // dark gray inner color
+          topTrapezoid.moveTo(trapezoidLeftX - trapezoidSlope, trapezoidBaseY);
+          topTrapezoid.lineTo(trapezoidRightX + trapezoidSlope, trapezoidBaseY);
+          topTrapezoid.lineTo(trapezoidRightX, trapezoidTopY);
+          topTrapezoid.lineTo(trapezoidLeftX, trapezoidTopY);
+          topTrapezoid.lineTo(trapezoidLeftX - trapezoidSlope, trapezoidBaseY);
+          topTrapezoid.endFill();
+          app.stage.addChild(topTrapezoid);
+
+          // Two red windows, vertically centered in the trapezoid
+          const windowWidth = trapezoidWidth * 0.18;
+          const windowHeight = 8;
+          const windowY = trapezoidTopY + (trapezoidHeight - windowHeight) / 2;
+          const windowSpacing = trapezoidWidth * 0.32;
+          for (let i = 0; i < 2; i++) {
+            const wx = centerX - windowSpacing / 2 + i * windowSpacing;
+            const window = new PIXI.Graphics();
+            window.beginFill(0xff2222);
+            window.lineStyle(2, 0xff4444, 0.7);
+            window.drawRoundedRect(wx - windowWidth / 2, windowY, windowWidth, windowHeight, 3);
+            window.endFill();
+            app.stage.addChild(window);
+          }
+          const bunker = new PIXI.Graphics();
+          // Main body: thick, angular, concrete look
+          bunker.beginFill(0x33363a);
+          bunker.lineStyle(6, 0x888c99, 1.0);
+          // Trapezoidal base for sloped armor
+          const baseY = bottomY;
+          const topY = bottomY - bunkerHeight;
+          const slope = 18;
+          bunker.moveTo(centerX - bunkerWidth / 2 - slope, baseY);
+          bunker.lineTo(centerX + bunkerWidth / 2 + slope, baseY);
+          bunker.lineTo(centerX + bunkerWidth / 2, topY);
+          bunker.lineTo(centerX - bunkerWidth / 2, topY);
+          bunker.lineTo(centerX - bunkerWidth / 2 - slope, baseY);
+          bunker.endFill();
+
+          // Flat reinforced roof
+          bunker.beginFill(0x44474c);
+          bunker.lineStyle(0);
+          bunker.drawRect(centerX - bunkerWidth / 2 - 6, topY - 10, bunkerWidth + 12, 14);
+          bunker.endFill();
+
+          // Firing slits (narrow, dark, evenly spaced)
+          const slitCount = 5;
+          const slitWidth = bunkerWidth * 0.10;
+          const slitHeight = 7;
+          const slitY = topY + 18;
+          for (let i = 0; i < slitCount; i++) {
+            const slitX = centerX - bunkerWidth / 2 + (bunkerWidth / (slitCount + 1)) * (i + 1) - slitWidth / 2;
+            // Glowing blue window
+            bunker.beginFill(0x00ccff);
+            bunker.lineStyle(2, 0x00ffff, 0.7);
+            bunker.drawRoundedRect(slitX, slitY, slitWidth, slitHeight, 3);
+            bunker.endFill();
+            bunker.lineStyle(0);
+          }
+
+          // Reinforcement lines (horizontal)
+          bunker.lineStyle(2, 0x888c99, 0.5);
+          for (let i = 1; i <= 2; i++) {
+            const y = baseY - (bunkerHeight * i) / 3;
+            bunker.moveTo(centerX - bunkerWidth / 2 - slope / 2, y);
+            bunker.lineTo(centerX + bunkerWidth / 2 + slope / 2, y);
+          }
+
+          // Add a thick base border for extra strength
+          bunker.lineStyle(8, 0x888c99, 0.8);
+          bunker.moveTo(centerX - bunkerWidth / 2 - slope, baseY);
+          bunker.lineTo(centerX + bunkerWidth / 2 + slope, baseY);
+
+          app.stage.addChild(bunker);
+
+          // --- SATELLITE DISH POLES ---
+          // Left pole
+          const poleLeft = new PIXI.Graphics();
+          const poleWidth = 4;
+          const poleHeight = 38;
+          const poleColor = 0x44474c; // same as bunker roof
+          // Place at left edge of roof
+          const poleLeftX = centerX - bunkerWidth / 2 - 6 + poleWidth / 2;
+          const poleLeftY = topY - 10;
+          poleLeft.beginFill(poleColor);
+          poleLeft.drawRect(-poleWidth / 2, -poleHeight, poleWidth, poleHeight);
+          poleLeft.endFill();
+          poleLeft.x = poleLeftX;
+          poleLeft.y = poleLeftY;
+          app.stage.addChild(poleLeft);
+
+          // Right pole
+          const poleRight = new PIXI.Graphics();
+          const poleRightX = centerX + bunkerWidth / 2 + 6 - poleWidth / 2;
+          const poleRightY = topY - 10;
+          poleRight.beginFill(poleColor);
+          poleRight.drawRect(-poleWidth / 2, -poleHeight, poleWidth, poleHeight);
+          poleRight.endFill();
+          poleRight.x = poleRightX;
+          poleRight.y = poleRightY;
+          app.stage.addChild(poleRight);
+        }
+        drawBunker(centerX, bottomY);
+        
+        // Create a rocket function
+        function createRocket() {
+          const rocket = new PIXI.Graphics();
+          // Draw rocket as small white circle
+          rocket.beginFill(0xFF2222); // Red for enemy rocket
+          rocket.drawCircle(0, 0, 3); // 3-pixel radius white circle
+          rocket.endFill();
+          // Position at middle top of screen
+          rocket.x = centerX;
+          rocket.y = 0;
+          // Set velocity - moving downward toward building at half speed (2.5 px/frame)
+          rocket.vx = 0;
+          rocket.vy = 1.5;
+          // Trail system
+          rocket.trail = []; // Array to store trail particles
+          rocket.maxTrailLength = 25;
+          rockets.push(rocket);
+          app.stage.addChild(rocket);
+        }
+        
+        // Add keyboard handler to create rockets and test enemy explosion
+        window.addEventListener('keydown', (event) => {
+          if (event.code === 'Space') {
+            createRocket();
+          }
+          // Press 'K' to test enemy rocket explosion at center screen
+          if (event.key === 'k' || event.key === 'K') {
+            createRedBurstExplosion(app.screen.width / 2, app.screen.height / 2);
+          }
+        });
+        
+
+        // Add click handler to launch a green rocket from bunker roof towards mouse click
+        app.canvas.addEventListener('click', (event) => {
+          if (event.button === 0) {
+            // Get mouse position relative to canvas
+            console.log('Mouse click at:', event.clientX, event.clientY);
+            const rect = app.canvas.getBoundingClientRect();
+            const mouseX = (event.clientX - rect.left) * (app.screen.width / rect.width);
+            const mouseY = (event.clientY - rect.top) * (app.screen.height / rect.height);
+            // Bunker roof center
+            const bunkerTopX = centerX;
+            const bunkerTopY = bottomY - bunkerHeight - 10;
+            // Calculate velocity to aim at mouse
+            const dx = mouseX - bunkerTopX;
+            const dy = mouseY - bunkerTopY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const speed = 6;
+            const vx = dx / dist * speed;
+            const vy = dy / dist * speed;
+            // Create green rocket
+            const rocket = new PIXI.Graphics();
+            rocket.beginFill(0x00ff44);
+            rocket.drawCircle(0, 0, 3);
+            rocket.endFill();
+            rocket.x = bunkerTopX;
+            rocket.y = bunkerTopY;
+            rocket.vx = vx;
+            rocket.vy = vy;
+            rocket.trail = [];
+            rocket.maxTrailLength = 25;
+            rocket.isPlayerRocket = true;
+            rocket.targetX = mouseX;
+            rocket.targetY = mouseY;
+            rockets.push(rocket);
+            app.stage.addChild(rocket);
+          }
+        });
+
+        // Add right-click handler to launch a targeted rocket
+        app.canvas.addEventListener('contextmenu', (event) => {
+          event.preventDefault(); // Prevent context menu
+          // Pick a random building
+          const buildingIdx = Math.floor(Math.random() * buildingCenters.length);
+          const buildingCenterX = buildingCenters[buildingIdx] + buildingWidth / 2;
+          const buildingTopY = bottomY - buildingHeight;
+          // Spawn rocket at random X at top
+          const rocketStartX = Math.random() * app.screen.width;
+          const rocketStartY = 0;
+          // Calculate velocity to aim at building
+          const dx = buildingCenterX - rocketStartX;
+          const dy = buildingTopY - rocketStartY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const speed = 1.5; // Slower enemy rocket speed
+          const vx = dx / dist * speed;
+          const vy = dy / dist * speed;
+          // Create rocket
+          const rocket = new PIXI.Graphics();
+          rocket.beginFill(0xFF2222); // Red for enemy rocket
+          rocket.drawCircle(0, 0, 3);
+          rocket.endFill();
+          rocket.x = rocketStartX;
+          rocket.y = rocketStartY;
+          rocket.vx = vx;
+          rocket.vy = vy;
+          rocket.trail = [];
+          rocket.maxTrailLength = 25;
+          rocket.targetBuildingIdx = buildingIdx;
+          rocket.targetX = buildingCenterX;
+          rocket.targetY = buildingTopY;
+          rockets.push(rocket);
+          app.stage.addChild(rocket);
+        });
+
+        // Explosion function (no-op, left for compatibility)
+        function explodeBuilding() {
+          // No action; buildings only explode when hit by a rocket
+        }
+
+        // Explosion function for a specific building
+        function explodeBuildingAt(buildingIdx) {
+          console.log('Exploding building at index:', buildingIdx);
+          // Find all pieces belonging to this building (by gridX/gridY and position)
+          buildingPieces.forEach((piece) => {
+            if (
+              piece.originalX >= buildingCenters[buildingIdx] &&
+              piece.originalX < buildingCenters[buildingIdx] + buildingWidth
+            ) {
+              // Explode this piece
+              piece.vx = (Math.random() - 0.5) * 3.0;
+              piece.vy = -(4.0 + Math.random() * 3.2);
+              piece.rotationSpeed = (Math.random() - 0.5) * 0.1;
+              piece.exploding = true;
+              piece.landed = false;
+              piece.bounced = false;
+            }
+          });
+          // Center explosion at building base
+          const x = buildingCenters[buildingIdx] + buildingWidth / 2;
+          const y = bottomY;
+          createExplosionParticles(x, y);
+        }
+
+        // Generic explosion function that can be called from anywhere
+        function explodeAtPosition(x, y) {
+          // Create explosion particles at specified position
+          createExplosionParticles(x, y);
+          
+          buildingPieces.forEach((piece, index) => {
+            // Random horizontal speed anywhere from -1.5 to +1.5 (including zero for straight up)
+            piece.vx = (Math.random() - 0.5) * 3.0; // -1.5 to +1.5 pixels per frame
+            
+            // Random slow vertical speed (upward) - halved max velocity with offset
+            piece.vy = -(4.0 + Math.random() * 3.2); // -4.0 to -7.2 pixels per frame (negative = upward)
+            
+            // Random rotation speed
+            piece.rotationSpeed = (Math.random() - 0.5) * 0.1; // -0.05 to 0.05 radians per frame
+            
+            // Mark as exploding
+            piece.exploding = true;
+            piece.landed = false;
+            piece.bounced = false; // Track if piece has bounced yet
+          });
+        }
+
+        // Create explosion particles
+        function createExplosionParticles(explosionCenterX = centerX, explosionCenterY = bottomY) {
+          
+          // Create fire/spark particles (MORE!)
+          for (let i = 0; i < 300; i++) { // Doubled from 150 to 300
+            const particle = new PIXI.Graphics();
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1.5 + Math.random() * 9; // 1.5x speed: was 1-7, now 1.5-10.5
+            const size = 1 + Math.random() * 6; // Smaller start: was 2-10, now 1-7
+            
+            // Random fire colors
+            const colors = [0xFF4500, 0xFF6600, 0xFF8C00, 0xFFD700, 0xFFFFFF];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            particle.beginFill(color);
+            particle.drawCircle(0, 0, size);
+            particle.endFill();
+            
+            particle.x = explosionCenterX;
+            particle.y = explosionCenterY;
+            particle.vx = Math.cos(angle) * speed;
+            particle.vy = -Math.random() * 10; // Upward only: 0 to -10 pixels per frame
+            particle.life = 1.0;
+            particle.maxLife = 60 + Math.random() * 60; // Longer lasting
+            particle.type = 'fire';
+            
+            explosionParticles.push(particle);
+            app.stage.addChild(particle);
+          }
+          
+          // Create sparkle particles (MORE!)
+          for (let i = 0; i < 200; i++) { // Doubled from 100 to 200
+            const particle = new PIXI.Graphics();
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1.5 + Math.random() * 4; // Half speed: was 3-11, now 1.5-5.5
+            const size = 1 + Math.random() * 4;
+            
+            // Bright sparkle colors
+            const sparkleColors = [0x00FFFF, 0xFFFFFF, 0xFFD700, 0xFF69B4];
+            const color = sparkleColors[Math.floor(Math.random() * sparkleColors.length)];
+            
+            particle.beginFill(color);
+            particle.drawCircle(0, 0, size);
+            particle.endFill();
+            
+            particle.x = explosionCenterX;
+            particle.y = explosionCenterY;
+            particle.vx = Math.cos(angle) * speed;
+            particle.vy = -Math.random() * 5; // Upward only: 0 to -5 pixels per frame
+            particle.life = 1.0;
+            particle.maxLife = 40 + Math.random() * 40;
+            particle.type = 'sparkle';
+            particle.twinkle = Math.random() * Math.PI * 2; // For twinkling effect
+            
+            explosionParticles.push(particle);
+            app.stage.addChild(particle);
+          }
+          
+          // Create yellow spark cloud (NEW!)
+          for (let i = 0; i < 400; i++) { // Doubled count from 200 to 400
+            const particle = new PIXI.Graphics();
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 0.25 + Math.random() * 1.5; // Half speed: was 0.5-3.5, now 0.25-1.75
+            const size = 1 + Math.random() * 3;
+            
+            // Yellow spark colors with variations
+            const yellowColors = [0xFFFF00, 0xFFD700, 0xFFA500, 0xFFFF99, 0xFFE135];
+            const color = yellowColors[Math.floor(Math.random() * yellowColors.length)];
+            
+            particle.beginFill(color);
+            particle.drawCircle(0, 0, size);
+            particle.endFill();
+            
+            particle.x = explosionCenterX + (Math.random() - 0.5) * 20; // Start in small cluster
+            particle.y = explosionCenterY + (Math.random() - 0.5) * 20;
+            particle.vx = Math.cos(angle) * speed;
+            particle.vy = Math.sin(angle) * speed - 1.5; // 1.5x vertical speed: was -1, now -1.5
+            particle.life = 1.0;
+            particle.maxLife = 240 + Math.random() * 160; // Double lifetime: was 120-200, now 240-400
+            particle.type = 'yellowCloud';
+            particle.flickerPhase = Math.random() * Math.PI * 2; // For flickering
+            particle.expansion = 0; // Track cloud expansion
+            particle.gravity = 0.02 + Math.random() * 0.04; // Double gravity: was 0.01-0.03, now 0.02-0.06
+            
+            explosionParticles.push(particle);
+            app.stage.addChild(particle);
+          }
+        }
+
+        // Animation loop for exploding pieces
+        // Create a red/yellow/orange burst explosion with trails (for enemy rocket destruction)
+        function createRedBurstExplosion(x, y) {
+          const burstCount = 4 * (32 + Math.floor(Math.random() * 16)); // 128-192 particles
+          for (let i = 0; i < burstCount; i++) {
+            const particle = new PIXI.Graphics();
+            // Red/yellow/orange colors
+            const colors = [0xFF2222, 0xFF6600, 0xFFAA00, 0xFFD700, 0xFF8800];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            particle.beginFill(color);
+            particle.drawCircle(0, 0, 2 + Math.random() * 2);
+            particle.endFill();
+            particle.x = x;
+            particle.y = y;
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1.7 + Math.random() * 2.1; // Slightly slower
+            particle.vx = Math.cos(angle) * speed;
+            particle.vy = Math.sin(angle) * speed;
+            particle.life = 1.0;
+            particle.maxLife = 32 + Math.random() * 18; // 32-50 frames
+            particle.type = 'redBurst';
+            particle.trail = [];
+            particle.maxTrailLength = 12 + Math.floor(Math.random() * 8);
+            explosionParticles.push(particle);
+            app.stage.addChild(particle);
+          }
+        }
+        // Create a growing spark cloud at (x, y) with given final radius, particle count, and duration (frames)
+        function createGrowingSparkCloud(centerX, centerY, finalRadius, particleCount, durationFrames) {
+          // Track this explosion's state
+          const explosion = {
+            centerX,
+            centerY,
+            finalRadius,
+            durationFrames,
+            frame: 0,
+            particles: [],
+            currentRadius: 0
+          };
+          for (let i = 0; i < particleCount; i++) {
+            const particle = new PIXI.Graphics();
+            // Start at center
+            particle.x = centerX;
+            particle.y = centerY;
+            // Store explosion center for animation
+            particle.growCenterX = centerX;
+            particle.growCenterY = centerY;
+            // Angle and final distance
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * finalRadius;
+            // Color: use yellow spark colors
+            const yellowColors = [0xFFFF00, 0xFFD700, 0xFFA500, 0xFFFF99, 0xFFE135];
+            const color = yellowColors[Math.floor(Math.random() * yellowColors.length)];
+            particle.beginFill(color);
+            particle.drawCircle(0, 0, 0.8 + Math.random() * 1.2); // Smaller size
+            particle.endFill();
+            // Animate outward over durationFrames
+            particle.growAngle = angle;
+            particle.growDistance = distance;
+            particle.growFrame = 0;
+            particle.growDuration = durationFrames;
+            particle.type = 'growingSpark';
+            particle.alpha = 1.0;
+            // Flicker like sparkle
+            particle.twinkle = Math.random() * Math.PI * 2;
+            explosionParticles.push(particle);
+            explosion.particles.push(particle);
+            app.stage.addChild(particle);
+          }
+          activePlayerExplosions.push(explosion);
+        }
+
+        app.ticker.add(() => {
+          // Update rockets
+          for (let i = rockets.length - 1; i >= 0; i--) {
+            const rocket = rockets[i];
+            // Move rocket
+            rocket.x += rocket.vx;
+            rocket.y += rocket.vy;
+            // Create trail particle at current position
+            const trailParticle = new PIXI.Graphics();
+            if (rocket.isPlayerRocket) {
+              trailParticle.beginFill(0x00ff44); // Green for player rocket trail
+            } else {
+              trailParticle.beginFill(0xFF2222); // Red for enemy rocket trail
+            }
+            trailParticle.drawCircle(0, 0, 3);
+            trailParticle.endFill();
+            trailParticle.x = rocket.x;
+            trailParticle.y = rocket.y;
+            trailParticle.alpha = 1.0;
+            trailParticle.age = 0;
+            rocket.trail.push(trailParticle);
+            app.stage.addChild(trailParticle);
+            // Update trail particles
+            for (let j = rocket.trail.length - 1; j >= 0; j--) {
+              const trail = rocket.trail[j];
+              trail.age++;
+              const ageRatio = trail.age / rocket.maxTrailLength;
+              const size = 3 - (ageRatio * 2);
+              trail.scale.set(size / 3);
+              trail.alpha = 1.0 - (ageRatio * 0.95);
+              if (trail.age >= rocket.maxTrailLength) {
+                app.stage.removeChild(trail);
+                rocket.trail.splice(j, 1);
+              }
+            }
+            // Check if rocket hit its target building (for targeted rockets)
+            if (rocket.targetBuildingIdx !== undefined) {
+              // Building bounding box
+              const bIdx = rocket.targetBuildingIdx;
+              const bx = buildingCenters[bIdx];
+              const by = bottomY - buildingHeight;
+              if (
+                rocket.x >= bx &&
+                rocket.x <= bx + buildingWidth &&
+                rocket.y >= by &&
+                rocket.y <= by + buildingHeight
+              ) {
+                explodeBuildingAt(bIdx);
+                app.stage.removeChild(rocket);
+                rocket.trail.forEach(trail => app.stage.removeChild(trail));
+                rockets.splice(i, 1);
+                continue;
+              }
+            } else if (rocket.isPlayerRocket) {
+              // Player rocket: check if reached mouse target (within 8px)
+              const dx = rocket.x - rocket.targetX;
+              const dy = rocket.y - rocket.targetY;
+              if (Math.sqrt(dx * dx + dy * dy) < 8) {
+                // Create a large growing spark cloud at mouse target (200 particles, smaller, flicker)
+                createGrowingSparkCloud(rocket.targetX, rocket.targetY, 50, 200, 120); // 2 seconds at 60fps = 120 frames
+                app.stage.removeChild(rocket);
+                rocket.trail.forEach(trail => app.stage.removeChild(trail));
+                rockets.splice(i, 1);
+                continue;
+              }
+            } else {
+              // Old rockets: check if hit any building area
+              if (rocket.y >= bottomY - buildingHeight) {
+                //explodeAtPosition(centerX, bottomY);
+                app.stage.removeChild(rocket);
+                rocket.trail.forEach(trail => app.stage.removeChild(trail));
+                rockets.splice(i, 1);
+                continue;
+              }
+            }
+            // Remove rocket if it goes off screen
+            if (rocket.y > app.screen.height + 50) {
+              app.stage.removeChild(rocket);
+              rocket.trail.forEach(trail => app.stage.removeChild(trail));
+              rockets.splice(i, 1);
+            }
+          }
+          
+          // Update building pieces
+          buildingPieces.forEach((piece) => {
+            if (piece.exploding && !piece.landed) {
+              // Apply gravity to vertical speed
+              piece.vy += 0.08; // Gravity constant
+              
+              // Apply rotation
+              piece.rotation += piece.rotationSpeed;
+              
+              // Calculate next position
+              const nextX = piece.x + piece.vx;
+              const nextY = piece.y + piece.vy;
+              
+              // Check for first bounce at ground level
+              if (nextY + pieceHeight >= app.screen.height && piece.vy > 0 && !piece.bounced) {
+                // First bounce only - then let them fall off screen
+                piece.x = nextX; // Update horizontal position
+                piece.y = app.screen.height - pieceHeight; // Snap to ground for bounce
+                piece.vy = -piece.vy * 0.4; // Reverse and reduce vertical velocity (40% of impact speed)
+                piece.vx = piece.vx * 0.7; // Reduce horizontal velocity due to friction
+                piece.rotationSpeed *= 0.6; // Reduce rotation speed
+                piece.bounced = true; // Mark as having bounced
+              } else {
+                // Normal position update - let pieces fall off screen after bounce
+                piece.x = nextX;
+                piece.y = nextY;
+                
+                // Mark as landed (for cleanup) if piece is far off screen
+                if (piece.y > app.screen.height + 200) {
+                  piece.landed = true; // Will be cleaned up below
+                }
+              }
+            }
+          });
+          
+          // Clean up pieces that have fallen off screen
+          for (let i = buildingPieces.length - 1; i >= 0; i--) {
+            const piece = buildingPieces[i];
+            if (piece.landed) {
+              app.stage.removeChild(piece);
+              buildingPieces.splice(i, 1);
+            }
+          }
+          
+          // Update explosion particles and track growing player explosions
+          for (let i = explosionParticles.length - 1; i >= 0; i--) {
+            const particle = explosionParticles[i];
+            if (particle.type === 'growingSpark') {
+              // Animate outward from center to final radius over duration
+              particle.growFrame++;
+              const t = Math.min(1, particle.growFrame / particle.growDuration);
+              // Ease out for more natural look
+              const easeT = 1 - Math.pow(1 - t, 2);
+              const r = easeT * particle.growDistance;
+              particle.x = particle.growCenterX + Math.cos(particle.growAngle) * r;
+              particle.y = particle.growCenterY + Math.sin(particle.growAngle) * r;
+              // Flicker like sparkle
+              particle.twinkle += 0.3;
+              const flicker = 0.5 + 0.5 * Math.sin(particle.twinkle);
+              particle.alpha = (1.0 - t * 0.7) * flicker;
+              // Remove after duration
+              if (particle.growFrame >= particle.growDuration) {
+                app.stage.removeChild(particle);
+                explosionParticles.splice(i, 1);
+                // Remove from activePlayerExplosions if this was the last particle
+                for (let e = activePlayerExplosions.length - 1; e >= 0; e--) {
+                  const exp = activePlayerExplosions[e];
+                  if (exp.particles.includes(particle)) {
+                    // Remove this particle from the explosion's list
+                    exp.particles = exp.particles.filter(p => p !== particle);
+                    // If no particles left, remove the explosion
+                    if (exp.particles.length === 0) {
+                      activePlayerExplosions.splice(e, 1);
+                    }
+                    break;
+                  }
+                }
+                continue;
+              }
+              continue;
+            }
+            if (particle.type === 'redBurst') {
+              // Move
+              particle.x += particle.vx;
+              particle.y += particle.vy;
+              // Fade out
+              particle.life -= 1 / particle.maxLife;
+              particle.alpha = particle.life;
+              // Add trail particle
+              const trailParticle = new PIXI.Graphics();
+              trailParticle.beginFill(0xFF6600);
+              trailParticle.drawCircle(0, 0, 1.2);
+              trailParticle.endFill();
+              trailParticle.x = particle.x;
+              trailParticle.y = particle.y;
+              trailParticle.alpha = 0.7;
+              trailParticle.age = 0;
+              particle.trail.push(trailParticle);
+              app.stage.addChild(trailParticle);
+              // Update and clean up trail
+              for (let t = particle.trail.length - 1; t >= 0; t--) {
+                const tr = particle.trail[t];
+                tr.age++;
+                tr.alpha = 0.7 * (1 - tr.age / particle.maxTrailLength);
+                tr.scale.set(1 - tr.age / particle.maxTrailLength);
+                if (tr.age >= particle.maxTrailLength) {
+                  app.stage.removeChild(tr);
+                  particle.trail.splice(t, 1);
+                }
+              }
+              // Remove main particle if dead
+              if (particle.life <= 0 || particle.alpha <= 0) {
+                // Remove all trail particles
+                particle.trail.forEach(tr => app.stage.removeChild(tr));
+                app.stage.removeChild(particle);
+                explosionParticles.splice(i, 1);
+                continue;
+              }
+              continue;
+            }
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.life -= 1 / particle.maxLife;
+            if (particle.type === 'fire') {
+              particle.vy += 0.05;
+              particle.alpha = particle.life;
+              particle.scale.set(particle.life);
+              particle.vx *= 0.98;
+              particle.vy *= 0.98;
+            } else if (particle.type === 'sparkle') {
+              particle.vy += 0.08;
+              particle.twinkle += 0.3;
+              particle.alpha = particle.life * (0.5 + 0.5 * Math.sin(particle.twinkle));
+              particle.vx *= 0.95;
+            } else if (particle.type === 'yellowCloud') {
+              particle.expansion += 0.02;
+              particle.vx *= 1.01;
+              particle.vy += particle.gravity;
+              particle.vx *= 0.995;
+              particle.vy *= 0.998;
+              particle.flickerPhase += 0.4;
+              const flicker = 0.6 + 0.4 * Math.sin(particle.flickerPhase);
+              particle.alpha = particle.life * flicker;
+              const scaleVariation = 0.8 + 0.2 * Math.sin(particle.flickerPhase * 0.7);
+              particle.scale.set(particle.life * scaleVariation);
+            }
+            if (particle.life <= 0 || particle.alpha <= 0) {
+              app.stage.removeChild(particle);
+              explosionParticles.splice(i, 1);
+            }
+          }
+
+          // Update currentRadius for each active player explosion
+          for (let e = activePlayerExplosions.length - 1; e >= 0; e--) {
+            const exp = activePlayerExplosions[e];
+            exp.frame++;
+            const t = Math.min(1, exp.frame / exp.durationFrames);
+            const easeT = 1 - Math.pow(1 - t, 2);
+            exp.currentRadius = easeT * exp.finalRadius;
+          }
+
+          // Destroy enemy rockets that enter any active player explosion radius
+          for (let i = rockets.length - 1; i >= 0; i--) {
+            const rocket = rockets[i];
+            if (rocket.isPlayerRocket) continue;
+            for (let e = 0; e < activePlayerExplosions.length; e++) {
+              const exp = activePlayerExplosions[e];
+              const dx = rocket.x - exp.centerX;
+              const dy = rocket.y - exp.centerY;
+              if (Math.sqrt(dx * dx + dy * dy) < exp.currentRadius) {
+                // Destroy this rocket and create a red/yellow/orange burst explosion with trails
+                createRedBurstExplosion(rocket.x, rocket.y);
+                app.stage.removeChild(rocket);
+                rocket.trail.forEach(trail => app.stage.removeChild(trail));
+                rockets.splice(i, 1);
+                break;
+              }
+            }
+          }
+        });
+
+
+        console.log('PixiJS Application initialized');
+        console.log('Canvas size:', app.screen.width, 'x', app.screen.height);
+        console.log('Renderer type:', app.renderer.type === 1 ? 'WebGL' : 'Canvas');
+      });
+    </script>
+  </body>
+</html>
