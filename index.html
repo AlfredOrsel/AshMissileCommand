@@ -55,59 +55,88 @@
 
         // --- BACKDROP: Center Glow Ball ---
 
+
         function drawBackdropCenterGlow() {
-        // --- MOON OBJECT ---
-        function drawMoon() {
-          const moonContainer = new PIXI.Container();
-          // Position: top right, with some margin
-          const margin = Math.min(app.screen.width, app.screen.height) * 0.07;
-          const moonRadius = Math.min(app.screen.width, app.screen.height) * 0.035; // even smaller
-          const moonX = app.screen.width - margin - moonRadius;
-          const moonY = margin + moonRadius;
-          // Glow (restored original, stronger)
-          const moonGlow = new PIXI.Graphics();
-          for (let r = moonRadius * 1.7; r > moonRadius; r -= 1.2) {
-            const t = (r - moonRadius) / (moonRadius * 0.7);
-            const alpha = 0.18 * Math.pow(1 - t, 2.5);
-            if (alpha < 0.01) continue;
-            moonGlow.beginFill(0xffffff, alpha);
-            moonGlow.drawCircle(0, 0, r);
-            moonGlow.endFill();
+          // --- BACKDROP STARS ---
+          function drawBackdropStars() {
+            const starContainer = new PIXI.Container();
+            const starCount = 32;
+            // Find the highest background building Y (lowest y value)
+            // We'll use a conservative estimate based on cityscape params
+            const bgMaxHeight = 220;
+            const bgBaseY = app.screen.height - 120;
+            const highestBuildingY = bgBaseY - bgMaxHeight;
+            for (let i = 0; i < starCount; i++) {
+              const star = new PIXI.Graphics();
+              // Random radius: 0.7 to 2.2 px
+              const radius = 0.7 + Math.random() * 1.5;
+              // Lower brightness: 0.32 to 0.62 (was 0.55-1.0)
+              const alpha = 0.32 + Math.random() * 0.3;
+              star.beginFill(0xffffff, alpha);
+              star.drawCircle(0, 0, radius);
+              star.endFill();
+              // Random position above highest building
+              star.x = Math.random() * app.screen.width;
+              // Place in upper sky, but always above highest building
+              const minY = 0;
+              const maxY = highestBuildingY - 8;
+              star.y = minY + Math.random() * (maxY - minY);
+              starContainer.addChild(star);
+            }
+            // Add behind everything
+            app.stage.addChildAt(starContainer, 0);
+            window.backdropStars = starContainer;
           }
-          moonGlow.x = 0;
-          moonGlow.y = 0;
-          moonContainer.addChild(moonGlow);
-          // Core (main moon disk)
-          const moonCore = new PIXI.Graphics();
-          moonCore.beginFill(0xffffff, 0.98);
-          moonCore.drawCircle(0, 0, moonRadius);
-          moonCore.endFill();
-          moonCore.x = 0;
-          moonCore.y = 0;
-          moonContainer.addChild(moonCore);
-          // Place moon
-          moonContainer.x = moonX;
-          moonContainer.y = moonY;
-          app.stage.addChildAt(moonContainer, 0);
-          window.moon = moonContainer;
-        }
-        drawMoon();
+          drawBackdropStars();
 
-
-          const centerX = app.screen.width / 2;
-          const centerY = app.screen.height / 2.2;
+          // --- MOON OBJECT ---
+          function drawMoon() {
+            const moonContainer = new PIXI.Container();
+            // Position: top right, with some margin
+            const margin = Math.min(app.screen.width, app.screen.height) * 0.07;
+            const moonRadius = Math.min(app.screen.width, app.screen.height) * 0.035; // even smaller
+            const moonX = app.screen.width - margin - moonRadius;
+            const moonY = margin + moonRadius;
+            // Glow (restored original, stronger)
+            const moonGlow = new PIXI.Graphics();
+            for (let r = moonRadius * 1.7; r > moonRadius; r -= 1.2) {
+              const t = (r - moonRadius) / (moonRadius * 0.7);
+              const alpha = 0.18 * Math.pow(1 - t, 2.5);
+              if (alpha < 0.01) continue;
+              moonGlow.beginFill(0xffffff, alpha);
+              moonGlow.drawCircle(0, 0, r);
+              moonGlow.endFill();
+            }
+            moonGlow.x = 0;
+            moonGlow.y = 0;
+            moonContainer.addChild(moonGlow);
+            // Core (main moon disk)
+            const moonCore = new PIXI.Graphics();
+            moonCore.beginFill(0xffffff, 0.98);
+            moonCore.drawCircle(0, 0, moonRadius);
+            moonCore.endFill();
+            moonCore.x = 0;
+            moonCore.y = 0;
+            moonContainer.addChild(moonCore);
+            // Place moon
+            moonContainer.x = moonX;
+            moonContainer.y = moonY;
+            app.stage.addChildAt(moonContainer, 0);
+            window.moon = moonContainer;
+          }
+          drawMoon();
 
           // --- Unified Star Object (core, glow, spikes, ring) ---
           function makeUnifiedStar(extraDirections = []) {
             const star = new PIXI.Container();
-            // Glow
+            // Glow (less bright)
             const glow = new PIXI.Graphics();
             const glowRadius = Math.min(app.screen.width, app.screen.height) * 0.027;
             const coreRadius = Math.max(0.5, glowRadius * 0.09);
             for (let r = glowRadius; r > 0; r -= 0.5) {
               const t = r / glowRadius;
-              const alpha = 0.28 * Math.pow(1 - t, 2.5);
-              if (alpha < 0.005) continue;
+              const alpha = 0.13 * Math.pow(1 - t, 2.5); // was 0.28
+              if (alpha < 0.003) continue;
               glow.beginFill(0xffffff, alpha);
               glow.drawCircle(0, 0, r);
               glow.endFill();
@@ -115,15 +144,15 @@
             glow.x = 0;
             glow.y = 0;
             star.addChild(glow);
-            // Core
+            // Core (less bright)
             const core = new PIXI.Graphics();
-            core.beginFill(0xffffff, 0.68);
+            core.beginFill(0xffffff, 0.32); // was 0.68
             core.drawCircle(0, 0, coreRadius);
             core.endFill();
             core.x = 0;
             core.y = 0;
             star.addChild(core);
-            // Spikes
+            // Spikes (less bright)
             const spikeLength = glowRadius * 2.45 * 2 * 0.75;
             const spikeLengthH = spikeLength * 2.08;
             const spikeLengthV = spikeLength * 0.54;
@@ -148,9 +177,9 @@
               for (let i = 0; i < fadeSteps; i++) {
                 const t = i / fadeSteps;
                 const alpha = isHorizontal
-                  ? 0.13 * (1 - t) * (1 - t)
-                  : 0.13 * Math.pow(1 - t, 2.7);
-                if (alpha < 0.01) continue;
+                  ? 0.06 * (1 - t) * (1 - t) // was 0.13
+                  : 0.06 * Math.pow(1 - t, 2.7); // was 0.13
+                if (alpha < 0.005) continue;
                 const g = new PIXI.Graphics();
                 g.beginFill(0xffffff, alpha);
                 // For diagonal, start at center ball, same as vertical
@@ -193,13 +222,13 @@
                 star.addChild(g);
               }
             }
-            // Ring (very bright, right around the ball)
+            // Ring (less bright)
             const ring = new PIXI.Graphics();
             const ringInner = coreRadius * 0.33;
             const ringOuter = coreRadius * 0.33 + Math.max(1.0, glowRadius * 0.07);
             for (let r = ringOuter; r > ringInner; r -= 0.3) {
               const t = (r - ringInner) / (ringOuter - ringInner);
-              const alpha = 0.38 * (1 - t) + 0.07 * t;
+              const alpha = 0.13 * (1 - t) + 0.03 * t; // was 0.38/0.07
               ring.beginFill(0xffffff, alpha);
               ring.drawCircle(0, 0, r);
               ring.endFill();
@@ -212,14 +241,7 @@
             return star;
           }
 
-          // Create the unified 4-spiked star object and add to stage
-          const unifiedStar = makeUnifiedStar();
-          unifiedStar.x = centerX;
-          unifiedStar.y = centerY;
-          app.stage.addChildAt(unifiedStar, 0);
-          window.unifiedStar = unifiedStar;
-
-          // Create the 8-spiked star (diagonal spikes at 45deg)
+          // --- Place 4-5 randomly scattered 4- or 8-spiked stars in the sky ---
           const diag = Math.SQRT1_2; // 1/sqrt(2)
           const diagonalDirections = [
             [diag, diag],
@@ -227,12 +249,27 @@
             [diag, -diag],
             [-diag, -diag],
           ];
-          const star8 = makeUnifiedStar(diagonalDirections);
-          // Place it to the right of the 4-spiked star, with spacing
-          star8.x = centerX + Math.min(app.screen.width, app.screen.height) * 0.09;
-          star8.y = centerY;
-          app.stage.addChildAt(star8, 0);
-          window.star8 = star8;
+          const numStars = 4 + Math.floor(Math.random() * 2); // 4 or 5
+          const starObjs = [];
+          // Use same highest building Y as above
+          const bgMaxHeight = 220;
+          const bgBaseY = app.screen.height - 120;
+          const highestBuildingY = bgBaseY - bgMaxHeight;
+          for (let i = 0; i < numStars; i++) {
+            // Randomly choose 4- or 8-spiked
+            const isEight = Math.random() < 0.5;
+            const star = isEight ? makeUnifiedStar(diagonalDirections) : makeUnifiedStar();
+            // Random position in sky, always above highest building
+            star.x = Math.random() * app.screen.width;
+            const minY = 0;
+            const maxY = highestBuildingY - 16;
+            star.y = minY + Math.random() * (maxY - minY);
+            // Random rotation
+            star.rotation = Math.random() * Math.PI * 2;
+            app.stage.addChildAt(star, 0);
+            starObjs.push(star);
+          }
+          window.skyStars = starObjs;
         }
         drawBackdropCenterGlow();
 
