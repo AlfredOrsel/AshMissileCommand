@@ -62,7 +62,7 @@
           const centerY = app.screen.height / 2.2;
 
           // --- Unified Star Object (core, glow, spikes, ring) ---
-          function makeUnifiedStar() {
+          function makeUnifiedStar(extraDirections = []) {
             const star = new PIXI.Container();
             // Glow
             const glow = new PIXI.Graphics();
@@ -94,15 +94,20 @@
             const spikeWidth = Math.max(1.2, glowRadius * 0.13);
             const fadeStepsH = 18;
             const fadeStepsV = 38;
+            // 4 main directions
             const directions = [
               [-1, 0],
               [1, 0],
               [0, -1],
               [0, 1],
             ];
-            for (const [dx, dy] of directions) {
+            // Add extra directions if provided (for 8-spiked star)
+            const allDirections = directions.concat(extraDirections);
+            for (const [dx, dy] of allDirections) {
               const perp = [-dy, dx];
+              // For diagonal spikes, treat as vertical for fade/length
               const isHorizontal = dx !== 0 && dy === 0;
+              const isDiagonal = Math.abs(dx) === 1 && Math.abs(dy) === 1;
               const fadeSteps = isHorizontal ? fadeStepsH : fadeStepsV;
               for (let i = 0; i < fadeSteps; i++) {
                 const t = i / fadeSteps;
@@ -112,12 +117,15 @@
                 if (alpha < 0.01) continue;
                 const g = new PIXI.Graphics();
                 g.beginFill(0xffffff, alpha);
+                // For diagonal, start at center ball, same as vertical
                 let startLen = coreRadius;
                 if (!isHorizontal) {
                   startLen = coreRadius * 0.85;
                 }
+                // For diagonal, use vertical length
                 let len = startLen + t * ((isHorizontal ? spikeLengthH : spikeLengthV) - startLen);
                 let w = spikeWidth * (1 - t * 0.7);
+                // For diagonal, compensate for aspect ratio in both x and y
                 let x0 = dx * startLen + perp[0] * (-w / 2);
                 let y0 = dy * startLen + perp[1] * (-w / 2);
                 let x1 = dx * startLen + perp[0] * (w / 2);
@@ -132,7 +140,7 @@
                   x2 *= app.screen.height / app.screen.width;
                   x3 *= app.screen.height / app.screen.width;
                 }
-                if (dy !== 0 && dx === 0) {
+                if ((dy !== 0 && dx === 0) || isDiagonal) {
                   y0 *= app.screen.width / app.screen.height;
                   y1 *= app.screen.width / app.screen.height;
                   y2 *= app.screen.width / app.screen.height;
@@ -168,14 +176,27 @@
             return star;
           }
 
-          // Create the unified star object and add to stage
+          // Create the unified 4-spiked star object and add to stage
           const unifiedStar = makeUnifiedStar();
           unifiedStar.x = centerX;
           unifiedStar.y = centerY;
-          // You can now rotate or move unifiedStar as a single object
           app.stage.addChildAt(unifiedStar, 0);
-          // Optionally, expose for debugging
           window.unifiedStar = unifiedStar;
+
+          // Create the 8-spiked star (diagonal spikes at 45deg)
+          const diag = Math.SQRT1_2; // 1/sqrt(2)
+          const diagonalDirections = [
+            [diag, diag],
+            [-diag, diag],
+            [diag, -diag],
+            [-diag, -diag],
+          ];
+          const star8 = makeUnifiedStar(diagonalDirections);
+          // Place it to the right of the 4-spiked star, with spacing
+          star8.x = centerX + Math.min(app.screen.width, app.screen.height) * 0.09;
+          star8.y = centerY;
+          app.stage.addChildAt(star8, 0);
+          window.star8 = star8;
         }
         drawBackdropCenterGlow();
 
