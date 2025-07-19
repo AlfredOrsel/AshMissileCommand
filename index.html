@@ -1189,59 +1189,197 @@ let enemyRocketInterval = 90; // frames between enemy rockets (1.5s at 60fps)
               const unfrozenEnemyRockets = rockets.filter(r => !r.isPlayerRocket && !r.frozenByLaser);
               if (unfrozenEnemyRockets.length === 0) {
                 // All enemy rockets already frozen, finish round logic but do NOT show end round dialog yet
+                // Show white text mid screen upon round end (but do not stop animation loop)
+                if (!window._roundEndWhiteText) {
+                  const div = document.createElement('div');
+                  div.textContent = `Round ${roundNumber} complete!`;
+                  div.style.position = 'fixed';
+                  div.style.top = '50%';
+                  div.style.left = '50%';
+                  div.style.transform = 'translate(-50%, -50%)';
+                  div.style.zIndex = '2100';
+                  div.style.padding = '18px 48px';
+                  div.style.background = 'rgba(0,0,0,0.0)';
+                  div.style.color = '#fff';
+                  div.style.border = 'none';
+                  div.style.borderRadius = '12px';
+                  div.style.fontSize = '2.5rem';
+                  div.style.fontWeight = 'bold';
+                  div.style.boxShadow = 'none';
+                  div.style.userSelect = 'none';
+                  div.style.letterSpacing = '0.04em';
+                  div.style.textAlign = 'center';
+                  div.style.display = 'block';
+                  document.body.appendChild(div);
+                  window._roundEndWhiteText = div;
+                }
                 // Do NOT set roundActive = false or roundPause = true here, and do NOT return; let the animation/game loop continue
-                // roundActive = false;
-                // roundPause = true;
-                // roundNumber++;
-                // showRoundFinishedText(roundNumber - 1); // DEFERRED: do not show dialog yet
-                // setTimeout(() => {
-                //   startRoundBtn.textContent = `Start round ${roundNumber}`;
-                //   startRoundBtn.style.display = 'block';
-                //   hideRoundFinishedText();
-                // }, 2000);
-                // return;
               }
               // Laser animation state
               if (!window._laserFreezeState) {
                 window._laserFreezeState = {
                   queue: rockets.filter(r => !r.isPlayerRocket && !r.frozenByLaser),
                   antennaToggle: 0, // 0 = left, 1 = right
-                  laserContainer: new PIXI.Container(),
+                  // Remove laserContainer, lasers will be added directly to app.stage
                 };
-                app.stage.addChild(window._laserFreezeState.laserContainer);
+                // No laserContainer needed
               }
               const state = window._laserFreezeState;
               // Only process one enemy rocket per frame
               if (state.queue.length > 0) {
                 const rocket = state.queue.shift();
-                // Antenna positions (top of left/right antenna heads)
+                // --- Calculate antenna head (glowing dot) position using same geometry as dish drawing, but apply rotation and translation as in drawDishOnLeftPole/drawDishOnRightPole ---
+                const dishRadius = 24;
+                const dishStartAngle = Math.PI * 1.2;
+                const dishEndAngle = Math.PI * 1.8;
+                // Flat side angle and rod length
+                const flatAngle = Math.atan2(
+                  Math.sin(dishEndAngle) * dishRadius - Math.sin(dishStartAngle) * dishRadius,
+                  Math.cos(dishEndAngle) * dishRadius - Math.cos(dishStartAngle) * dishRadius
+                );
+                const rodLength = 20;
+                const mx = (Math.cos(dishStartAngle) * dishRadius + Math.cos(dishEndAngle) * dishRadius) / 2;
+                const my = (Math.sin(dishStartAngle) * dishRadius + Math.sin(dishEndAngle) * dishRadius) / 2;
+                const rodAngle = flatAngle + Math.PI / 2;
+                const rodEndX = mx + Math.cos(rodAngle) * rodLength;
+                const rodEndY = my + Math.sin(rodAngle) * rodLength;
+                // For left dish: rotate so rod points 135deg (top left)
+                const leftDesiredRodAngle = -3 * Math.PI / 4;
+                const leftDishRotation = leftDesiredRodAngle - rodAngle;
+                // For right dish: rotate so rod points -45deg (top right)
+                const rightDesiredRodAngle = -Math.PI / 4;
+                const rightDishRotation = rightDesiredRodAngle - rodAngle;
+                // Dish base positions (top of left/right bunker pole)
                 const poleWidth = 4;
                 const poleHeight = 38;
-                const leftAntennaX = centerX - bunkerWidth / 2 - 6 + poleWidth / 2 + 8; // +8 for antenna head
-                const leftAntennaY = bottomY - bunkerHeight - 10 - poleHeight - 26; // -26 for antenna head
-                const rightAntennaX = centerX + bunkerWidth / 2 + 6 - poleWidth / 2 - 8; // -8 for antenna head
-                const rightAntennaY = bottomY - bunkerHeight - 10 - poleHeight - 26;
-                const fromX = state.antennaToggle === 0 ? leftAntennaX : rightAntennaX;
-                const fromY = state.antennaToggle === 0 ? leftAntennaY : rightAntennaY;
+                const leftPoleX = centerX - bunkerWidth / 2 - 6 + poleWidth / 2;
+                const leftPoleY = bottomY - bunkerHeight - 10 - poleHeight;
+                const rightPoleX = centerX + bunkerWidth / 2 + 6 - poleWidth / 2;
+                const rightPoleY = bottomY - bunkerHeight - 10 - poleHeight;
+                // Helper to rotate a point (x, y) by angle
+                function rotatePoint(x, y, angle) {
+                  const cos = Math.cos(angle);
+                  const sin = Math.sin(angle);
+                  return {
+                    x: x * cos - y * sin,
+                    y: x * sin + y * cos
+                  };
+                }
+                // Helper to rotate a point (x, y) by angle around (0,0)
+                function rotateOnly(x, y, angle) {
+                  const cos = Math.cos(angle);
+                  const sin = Math.sin(angle);
+                  return {
+                    x: x * cos - y * sin,
+                    y: x * sin + y * cos
+                  };
+                }
+                // For left dish: match placement logic in drawDishOnLeftPole
+                const leftDishCos = Math.cos(leftDishRotation);
+                const leftDishSin = Math.sin(leftDishRotation);
+                const leftRodTipLocal = rotateOnly(rodEndX, rodEndY, leftDishRotation);
+                // Compute round side midpoint for dish placement
+                const roundMidAngle = (dishStartAngle + dishEndAngle) / 2;
+                const roundMidX = Math.cos(roundMidAngle) * dishRadius;
+                const roundMidY = Math.sin(roundMidAngle) * dishRadius;
+                const roundMidXr = roundMidX * leftDishCos - roundMidY * leftDishSin;
+                const roundMidYr = roundMidX * leftDishSin + roundMidY * leftDishCos;
+                const leftDishX = leftPoleX - roundMidXr;
+                const leftDishY = leftPoleY - roundMidYr;
+                const leftAntennaX = leftDishX + leftRodTipLocal.x;
+                const leftAntennaY = leftDishY + leftRodTipLocal.y;
+
+                // For right dish: match placement logic in drawDishOnRightPole
+                const rightDishCos = Math.cos(rightDishRotation);
+                const rightDishSin = Math.sin(rightDishRotation);
+                const rightRodTipLocal = rotateOnly(rodEndX, rodEndY, rightDishRotation);
+                const roundMidXrR = roundMidX * rightDishCos - roundMidY * rightDishSin;
+                const roundMidYrR = roundMidX * rightDishSin + roundMidY * rightDishCos;
+                const rightDishX = rightPoleX - roundMidXrR;
+                const rightDishY = rightPoleY - roundMidYrR;
+                const rightAntennaX = rightDishX + rightRodTipLocal.x;
+                const rightAntennaY = rightDishY + rightRodTipLocal.y;
+
+                // Use the correct antenna for this laser
+                let fromX, fromY;
+                if (state.antennaToggle === 0) {
+                  fromX = leftAntennaX;
+                  fromY = leftAntennaY;
+                } else {
+                  fromX = rightAntennaX;
+                  fromY = rightAntennaY;
+                }
                 state.antennaToggle = 1 - state.antennaToggle;
                 // Draw glowing red laser
-                const laser = new PIXI.Graphics();
-                for (let i = 0; i < 4; i++) {
-                  const alpha = 0.22 - i * 0.05;
-                  const width = 7 - i * 2;
-                  laser.lineStyle(width, 0xff2222, alpha);
-                  laser.moveTo(fromX, fromY);
-                  laser.lineTo(rocket.x, rocket.y);
-                }
-                state.laserContainer.addChild(laser);
+                // Instead of drawing the laser here, store its info for animation
+                if (!window.activeLasers) window.activeLasers = [];
+                window.activeLasers.push({
+                  fromX,
+                  fromY,
+                  toX: rocket.x,
+                  toY: rocket.y,
+                  color: 0xff2222,
+                  width: 7,
+                  created: performance.now(),
+                  type: 'enemyFreeze',
+                });
+                // Log for debug
+                console.log(`Laser queued: from (${fromX.toFixed(1)}, ${fromY.toFixed(1)}) to (${rocket.x.toFixed(1)}, ${rocket.y.toFixed(1)})`);
+// --- LASER ANIMATION: Draw all active lasers in main loop using a container (like searchlight) ---
+
+const laserContainer = new PIXI.Container();
+// Always add as the last child after all other stage children are created
+app.stage.addChild(laserContainer);
+laserContainer.alpha = 1.0;
+laserContainer.blendMode = 'normal';
+
+app.ticker.add(() => {
+  // Remove previous lasers
+  laserContainer.removeChildren();
+
+  // (Removed debug/test objects: red rectangle, white circle, white test laser, white rect line)
+
+  // Draw each laser as a thin solid red rectangle between its endpoints
+  if (window.activeLasers && window.activeLasers.length > 0) {
+    for (const laser of window.activeLasers) {
+      // Calculate angle and length
+      const dx = laser.toX - laser.fromX;
+      const dy = laser.toY - laser.fromY;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx);
+      const rect = new PIXI.Graphics();
+      rect.beginFill(0xff2222, 1.0);
+      // Draw a rectangle of width 2 (or laser.width if provided and smaller) and length matching the laser
+      const thickness = (laser.width && laser.width < 2) ? laser.width : 2;
+      rect.drawRect(0, -thickness/2, length, thickness);
+      rect.endFill();
+      rect.x = laser.fromX;
+      rect.y = laser.fromY;
+      rect.rotation = angle;
+      laserContainer.addChild(rect);
+      // Log coordinates for each laser
+      console.log(`Laser rect: from (${laser.fromX}, ${laser.fromY}) to (${laser.toX}, ${laser.toY}), length ${length}`);
+    }
+    // Log the entire array
+    console.log('Active lasers:', window.activeLasers);
+  }
+
+  // Log stage and container children counts for debug
+  console.log('app.stage.children.length:', app.stage.children.length);
+  console.log('laserContainer.children.length:', laserContainer.children.length);
+
+  // Ensure laserContainer is always the topmost child
+  if (app.stage.children[app.stage.children.length - 1] !== laserContainer) {
+    app.stage.addChild(laserContainer);
+  }
+  laserContainer.zIndex = 9999;
+  if (!app.stage.sortableChildren) app.stage.sortableChildren = true;
+});
                 // Freeze enemy rocket in place
                 rocket.vx = 0;
                 rocket.vy = 0;
                 rocket.frozenByLaser = true;
-                // Remove laser after a short delay
-                setTimeout(() => {
-                  state.laserContainer.removeChild(laser);
-                }, 180);
+                // Do NOT remove the laser after a short delay; keep it drawn during the freeze phase
               }
               // Continue processing next enemy rocket on next frame
               requestAnimationFrame(() => {
