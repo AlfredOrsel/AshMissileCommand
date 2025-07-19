@@ -948,6 +948,11 @@
         let roundDuration = 10 * 60; // 10 seconds at 60fps (testing)
         let roundPause = true;
         let roundFinishedText = null;
+        // Scoring and round stats
+        let rocketsDestroyed = 0;
+        let buildingsDestroyed = 0;
+        let enemyRocketInterval = 90; // frames between enemy rockets (1.5s at 60fps, can scale with round)
+        let enemyRocketFrameCounter = 0;
 
         // --- PLAYER SCORE AND ROUND TIMER UI ---
         let playerScore = 0;
@@ -1011,14 +1016,14 @@
         });
         document.body.appendChild(startRoundBtn);
 
-        // Colorful round finished text
+        // Colorful round finished text with summary
         function showRoundFinishedText(round) {
           if (roundFinishedText) {
             roundFinishedText.remove();
             roundFinishedText = null;
           }
           const div = document.createElement('div');
-          div.textContent = `Round ${round} finished`;
+          div.innerHTML = `Round ${round} finished<br><span style="font-size:1.3rem;">Rockets destroyed: ${rocketsDestroyed}<br>Buildings destroyed: ${buildingsDestroyed}</span>`;
           div.style.position = 'fixed';
           div.style.top = '50%';
           div.style.left = '50%';
@@ -1052,6 +1057,8 @@
           roundPause = false;
           roundActive = true;
           roundTimer = 0;
+          rocketsDestroyed = 0;
+          buildingsDestroyed = 0;
           hideRoundFinishedText();
           startRoundBtn.style.display = 'none';
         }
@@ -1086,16 +1093,33 @@
             const secondsLeft = Math.max(0, Math.ceil((roundDuration - roundTimer) / 60));
             roundTimeDiv.textContent = `Round: ${secondsLeft}s`;
             if (roundTimer >= roundDuration) {
+              // On round end, treat all flying enemy rockets as if hit by a friendly rocket (for scoring and explosion logic)
+              for (let i = rockets.length - 1; i >= 0; i--) {
+                const rocket = rockets[i];
+                if (!rocket.isPlayerRocket) {
+                  destroyEnemyRocketByPlayer(rocket, false); // false = not by player, do not increment score/stats
+                }
+              }
               roundActive = false;
               roundPause = true;
               roundNumber++;
-              showRoundFinishedText(roundNumber - 1);
-              // After 2s, show the start button for next round
-              setTimeout(() => {
-                startRoundBtn.textContent = `Start round ${roundNumber}`;
-                startRoundBtn.style.display = 'block';
-                hideRoundFinishedText();
-              }, 2000);
+              // Wait until all enemy rocket explosion particles are gone before showing round finished dialog
+              function waitForEnemyExplosionsAndShowDialog() {
+                // Check if any explosionParticles remain that were created for enemy rockets
+                // We'll assume all explosionParticles are for enemy rockets at this point
+                if (explosionParticles.length === 0) {
+                  showRoundFinishedText(roundNumber - 1);
+                  // After 2s, show the start button for next round
+                  setTimeout(() => {
+                    startRoundBtn.textContent = `Start round ${roundNumber}`;
+                    startRoundBtn.style.display = 'block';
+                    hideRoundFinishedText();
+                  }, 2000);
+                } else {
+                  requestAnimationFrame(waitForEnemyExplosionsAndShowDialog);
+                }
+              }
+              waitForEnemyExplosionsAndShowDialog();
             }
           } else {
             // Hide timer if not in round
@@ -1180,39 +1204,77 @@
           }
         });
 
-        // Add right-click handler to launch a targeted rocket
-        app.canvas.addEventListener('contextmenu', (event) => {
-          event.preventDefault(); // Prevent context menu
-          // Pick a random building
-          const buildingIdx = Math.floor(Math.random() * buildingCenters.length);
-          const buildingCenterX = buildingCenters[buildingIdx] + buildingWidth / 2;
-          const buildingTopY = bottomY - buildingHeight;
-          // Spawn rocket at random X at top
-          const rocketStartX = Math.random() * app.screen.width;
-          const rocketStartY = 0;
-          // Calculate velocity to aim at building
-          const dx = buildingCenterX - rocketStartX;
-          const dy = buildingTopY - rocketStartY;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const speed = 1.5; // Slower enemy rocket speed
-          const vx = dx / dist * speed;
-          const vy = dy / dist * speed;
-          // Create rocket
-          const rocket = new PIXI.Graphics();
-          rocket.beginFill(0xFF2222); // Red for enemy rocket
-          rocket.drawCircle(0, 0, 3);
-          rocket.endFill();
-          rocket.x = rocketStartX;
-          rocket.y = rocketStartY;
-          rocket.vx = vx;
-          rocket.vy = vy;
-          rocket.trail = [];
-          rocket.maxTrailLength = 25;
-          rocket.targetBuildingIdx = buildingIdx;
-          rocket.targetX = buildingCenterX;
-          rocket.targetY = buildingTopY;
-          rockets.push(rocket);
-          app.stage.addChild(rocket);
+        // Add right-click handler to launch a targeted rocket (DISABLED, keep code for future testing)
+        // app.canvas.addEventListener('contextmenu', (event) => {
+        //   event.preventDefault(); // Prevent context menu
+        //   // Pick a random building
+        //   const buildingIdx = Math.floor(Math.random() * buildingCenters.length);
+        //   const buildingCenterX = buildingCenters[buildingIdx] + buildingWidth / 2;
+        //   const buildingTopY = bottomY - buildingHeight;
+        //   // Spawn rocket at random X at top
+        //   const rocketStartX = Math.random() * app.screen.width;
+        //   const rocketStartY = 0;
+        //   // Calculate velocity to aim at building
+        //   const dx = buildingCenterX - rocketStartX;
+        //   const dy = buildingTopY - rocketStartY;
+        //   const dist = Math.sqrt(dx * dx + dy * dy);
+        //   const speed = 1.5; // Slower enemy rocket speed
+        //   const vx = dx / dist * speed;
+        //   const vy = dy / dist * speed;
+        //   // Create rocket
+        //   const rocket = new PIXI.Graphics();
+        //   rocket.beginFill(0xFF2222); // Red for enemy rocket
+        //   rocket.drawCircle(0, 0, 3);
+        //   rocket.endFill();
+        //   rocket.x = rocketStartX;
+        //   rocket.y = rocketStartY;
+        //   rocket.vx = vx;
+        //   rocket.vy = vy;
+        //   rocket.trail = [];
+        //   rocket.maxTrailLength = 25;
+        //   rocket.targetBuildingIdx = buildingIdx;
+        //   rocket.targetX = buildingCenterX;
+        //   rocket.targetY = buildingTopY;
+        //   rockets.push(rocket);
+        //   app.stage.addChild(rocket);
+        // });
+        // --- Automatic enemy rocket firing during active round ---
+        app.ticker.add(() => {
+          if (!roundActive) return;
+          enemyRocketFrameCounter++;
+          if (enemyRocketFrameCounter >= enemyRocketInterval) {
+            enemyRocketFrameCounter = 0;
+            // Pick a random building
+            const buildingIdx = Math.floor(Math.random() * buildingCenters.length);
+            const buildingCenterX = buildingCenters[buildingIdx] + buildingWidth / 2;
+            const buildingTopY = bottomY - buildingHeight;
+            // Spawn rocket at random X at top
+            const rocketStartX = Math.random() * app.screen.width;
+            const rocketStartY = 0;
+            // Calculate velocity to aim at building
+            const dx = buildingCenterX - rocketStartX;
+            const dy = buildingTopY - rocketStartY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const speed = 1.5; // Slower enemy rocket speed
+            const vx = dx / dist * speed;
+            const vy = dy / dist * speed;
+            // Create rocket
+            const rocket = new PIXI.Graphics();
+            rocket.beginFill(0xFF2222); // Red for enemy rocket
+            rocket.drawCircle(0, 0, 3);
+            rocket.endFill();
+            rocket.x = rocketStartX;
+            rocket.y = rocketStartY;
+            rocket.vx = vx;
+            rocket.vy = vy;
+            rocket.trail = [];
+            rocket.maxTrailLength = 25;
+            rocket.targetBuildingIdx = buildingIdx;
+            rocket.targetX = buildingCenterX;
+            rocket.targetY = buildingTopY;
+            rockets.push(rocket);
+            app.stage.addChild(rocket);
+          }
         });
 
         // Explosion function (no-op, left for compatibility)
@@ -1223,6 +1285,9 @@
         // Explosion function for a specific building
         function explodeBuildingAt(buildingIdx) {
           console.log('Exploding building at index:', buildingIdx);
+          buildingsDestroyed++;
+          playerScore -= 500;
+          scoreDiv.textContent = `Score: ${playerScore}`;
           // Find all pieces belonging to this building (by gridX/gridY and position)
           buildingPieces.forEach((piece) => {
             if (
@@ -1242,6 +1307,21 @@
           const x = buildingCenters[buildingIdx] + buildingWidth / 2;
           const y = bottomY;
           createExplosionParticles(x, y);
+        }
+        // --- Add scoring for enemy rocket destruction by player ---
+
+        // Unified function: destroy enemy rocket as if hit by friendly rocket explosion
+        function destroyEnemyRocketByPlayer(rocket, byPlayer = true) {
+          createRedBurstExplosion(rocket.x, rocket.y);
+          app.stage.removeChild(rocket);
+          if (rocket.trail) rocket.trail.forEach(trail => app.stage.removeChild(trail));
+          const idx = rockets.indexOf(rocket);
+          if (idx !== -1) rockets.splice(idx, 1);
+          if (byPlayer) {
+            rocketsDestroyed++;
+            playerScore += 100;
+            scoreDiv.textContent = `Score: ${playerScore}`;
+          }
         }
 
         // Generic explosion function that can be called from anywhere
@@ -1426,8 +1506,6 @@
             const speed = 1.7 + Math.random() * 2.1; // Slightly slower
             particle.vx = Math.cos(angle) * speed;
             particle.vy = Math.sin(angle) * speed;
-            particle.life = 1.0;
-            particle.maxLife = 32 + Math.random() * 18; // 32-50 frames
             particle.type = 'redBurst';
             particle.trail = [];
             particle.maxTrailLength = 12 + Math.floor(Math.random() * 8);
@@ -1776,11 +1854,7 @@
               const dx = rocket.x - exp.centerX;
               const dy = rocket.y - exp.centerY;
               if (Math.sqrt(dx * dx + dy * dy) < exp.currentRadius) {
-                // Destroy this rocket and create a red/yellow/orange burst explosion with trails
-                createRedBurstExplosion(rocket.x, rocket.y);
-                app.stage.removeChild(rocket);
-                rocket.trail.forEach(trail => app.stage.removeChild(trail));
-                rockets.splice(i, 1);
+                destroyEnemyRocketByPlayer(rocket);
                 break;
               }
             }
