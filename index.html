@@ -1478,6 +1478,56 @@ app.ticker.add(() => {
           if (targetRocketIdx !== -1) {
             // Explode and remove the rocket as if hit by friendly rocket
             destroyEnemyRocketByPlayer(rockets[targetRocketIdx], false);
+            // Check if this was the last enemy rocket
+            const remainingEnemyRockets = rockets.filter(r => !r.isPlayerRocket);
+            if (remainingEnemyRockets.length === 0) {
+              // All enemy rockets destroyed, show end round dialog with Next round button
+              if (window._roundEndWhiteText) {
+                window._roundEndWhiteText.remove();
+                window._roundEndWhiteText = null;
+              }
+              if (window.roundFinishedText) {
+                window.roundFinishedText.remove();
+                window.roundFinishedText = null;
+              }
+              // Create the dialog
+              const div = document.createElement('div');
+              div.innerHTML = `Round ${roundNumber} finished<br><span style="font-size:1.3rem;">Rockets destroyed: ${rocketsDestroyed}<br>Buildings destroyed: ${buildingsDestroyed}</span><br><button id='nextRoundBtn' style='margin-top:18px;padding:14px 38px;font-size:1.5rem;font-weight:bold;background:linear-gradient(90deg,#00ccff 0%,#ff00cc 100%);color:#fff;border:4px solid #fff;border-radius:14px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.18);'>Next round</button>`;
+              div.style.position = 'fixed';
+              div.style.top = '50%';
+              div.style.left = '50%';
+              div.style.transform = 'translate(-50%, -50%)';
+              div.style.zIndex = '2000';
+              div.style.padding = '32px 80px';
+              div.style.background = 'linear-gradient(90deg, #ffef00 0%, #ff00cc 100%)';
+              div.style.color = '#222';
+              div.style.border = '6px solid #fff';
+              div.style.borderRadius = '22px';
+              div.style.fontSize = '2.5rem';
+              div.style.fontWeight = 'bold';
+              div.style.boxShadow = '0 8px 32px rgba(0,0,0,0.28)';
+              div.style.userSelect = 'none';
+              div.style.letterSpacing = '0.04em';
+              div.style.textAlign = 'center';
+              div.style.display = 'block';
+              document.body.appendChild(div);
+              window.roundFinishedText = div;
+              // Add handler for Next round button
+              const nextBtn = div.querySelector('#nextRoundBtn');
+              if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                  div.remove();
+                  window.roundFinishedText = null;
+                  // Start next round
+                  roundNumber++;
+                  startRoundBtn.textContent = `Start round ${roundNumber}`;
+                  startRoundBtn.style.display = 'block';
+                });
+              }
+              // Pause round logic until next round is started
+              roundActive = false;
+              roundPause = true;
+            }
           }
           // Remove the laser from activeLasers
           if (window.activeLasers) {
