@@ -1371,9 +1371,20 @@ app.ticker.add(() => {
               if (window._laserWaveEndQueue.length === 0) return;
               const l = window._laserWaveEndQueue.shift();
               l.waveActiveUntil = performance.now() + 100; // will expire next frame
-              setTimeout(nextWaveEnd, 5000);
+              // After 2s from reverting to base form, launch glowing ball
+              setTimeout(() => {
+                l.glowingBall = {
+                  startTime: performance.now(),
+                  duration: 1200, // ms for ball to travel
+                  radius: 3,
+                  color: 0xff2222,
+                  glowColor: 0xff4444,
+                  glowAlpha: 0.45,
+                };
+              }, 2000);
+              setTimeout(nextWaveEnd, 3000);
             }
-            setTimeout(nextWaveEnd, 5000); // Wait 5s before the first laser reverts
+            setTimeout(nextWaveEnd, 3000); // Wait 3s before the first laser reverts
           }, 400); // small delay to ensure all lasers are present
         }
         window._laserWaveEndQueue.push(laser);
@@ -1411,6 +1422,34 @@ app.ticker.add(() => {
           seg.y = laser.fromY;
           seg.rotation = angle;
           laserContainer.addChild(seg);
+        }
+      }
+      // --- Glowing ball effect: after wave is gone, if glowingBall is set, animate it ---
+      if (laser.waveActiveUntil <= now && laser.glowingBall) {
+        const ball = laser.glowingBall;
+        const t = Math.min(1, (now - ball.startTime) / ball.duration);
+        // Ball position along the laser
+        const bx = laser.fromX + dx * t;
+        const by = laser.fromY + dy * t;
+        // Draw glow
+        const glow = new PIXI.Graphics();
+        glow.beginFill(ball.glowColor, ball.glowAlpha * (0.7 + 0.3 * t));
+        glow.drawCircle(0, 0, ball.radius * (1.7 + 0.7 * t));
+        glow.endFill();
+        glow.x = bx;
+        glow.y = by;
+        laserContainer.addChild(glow);
+        // Draw solid ball
+        const core = new PIXI.Graphics();
+        core.beginFill(ball.color, 0.98);
+        core.drawCircle(0, 0, ball.radius);
+        core.endFill();
+        core.x = bx;
+        core.y = by;
+        laserContainer.addChild(core);
+        // Remove glowingBall after it reaches the end
+        if (t >= 1) {
+          delete laser.glowingBall;
         }
       }
     }
