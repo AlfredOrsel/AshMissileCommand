@@ -941,24 +941,133 @@
           drawSearchlight();
         });
 
+        // --- ROUND SYSTEM ---
+        let roundNumber = 1;
+        let roundActive = false;
+        let roundTimer = 0;
+        let roundDuration = 10 * 60; // 10 seconds at 60fps (testing)
+        let roundPause = true;
+        let roundFinishedText = null;
+
+        // --- PLAYER SCORE AND ROUND TIMER UI ---
+        let playerScore = 0;
+        // Score display (smaller, green, closer to top)
+        const scoreDiv = document.createElement('div');
+        scoreDiv.textContent = `Score: ${playerScore}`;
+        scoreDiv.style.position = 'fixed';
+        scoreDiv.style.top = '6px';
+        scoreDiv.style.left = '50%';
+        scoreDiv.style.transform = 'translateX(-50%)';
+        scoreDiv.style.zIndex = '1500';
+        scoreDiv.style.fontSize = '1.2rem';
+        scoreDiv.style.fontWeight = 'bold';
+        scoreDiv.style.color = '#00ff44';
+        scoreDiv.style.textShadow = '0 1px 4px #000, 0 0px 2px #00ccff';
+        scoreDiv.style.letterSpacing = '0.04em';
+        scoreDiv.style.userSelect = 'none';
+        document.body.appendChild(scoreDiv);
+
+        // Round seconds-left display (smaller, green, closer to top left)
+        const roundTimeDiv = document.createElement('div');
+        roundTimeDiv.textContent = '';
+        roundTimeDiv.style.position = 'fixed';
+        roundTimeDiv.style.top = '6px';
+        roundTimeDiv.style.left = '10px';
+        roundTimeDiv.style.zIndex = '1500';
+        roundTimeDiv.style.fontSize = '1.1rem';
+        roundTimeDiv.style.fontWeight = 'bold';
+        roundTimeDiv.style.color = '#00ff44';
+        roundTimeDiv.style.textShadow = '0 1px 4px #000, 0 0px 2px #00ccff';
+        roundTimeDiv.style.letterSpacing = '0.04em';
+        roundTimeDiv.style.userSelect = 'none';
+        document.body.appendChild(roundTimeDiv);
+
+        // Fancy Start Round button
+        const startRoundBtn = document.createElement('button');
+        startRoundBtn.textContent = 'Start round 1';
+        startRoundBtn.style.position = 'fixed';
+        startRoundBtn.style.top = '50%';
+        startRoundBtn.style.left = '50%';
+        startRoundBtn.style.transform = 'translate(-50%, -50%)';
+        startRoundBtn.style.zIndex = '2000';
+        startRoundBtn.style.padding = '28px 64px';
+        startRoundBtn.style.background = 'linear-gradient(90deg, #00ccff 0%, #ff00cc 100%)';
+        startRoundBtn.style.color = '#fff';
+        startRoundBtn.style.border = '4px solid #fff';
+        startRoundBtn.style.borderRadius = '18px';
+        startRoundBtn.style.fontSize = '2.2rem';
+        startRoundBtn.style.cursor = 'pointer';
+        startRoundBtn.style.boxShadow = '0 8px 32px rgba(0,0,0,0.28)';
+        startRoundBtn.style.userSelect = 'none';
+        startRoundBtn.style.fontWeight = 'bold';
+        startRoundBtn.style.letterSpacing = '0.04em';
+        startRoundBtn.style.display = 'block';
+        startRoundBtn.style.transition = 'background 0.3s';
+        startRoundBtn.addEventListener('mouseenter', () => {
+          startRoundBtn.style.background = 'linear-gradient(90deg, #ff00cc 0%, #00ccff 100%)';
+        });
+        startRoundBtn.addEventListener('mouseleave', () => {
+          startRoundBtn.style.background = 'linear-gradient(90deg, #00ccff 0%, #ff00cc 100%)';
+        });
+        document.body.appendChild(startRoundBtn);
+
+        // Colorful round finished text
+        function showRoundFinishedText(round) {
+          if (roundFinishedText) {
+            roundFinishedText.remove();
+            roundFinishedText = null;
+          }
+          const div = document.createElement('div');
+          div.textContent = `Round ${round} finished`;
+          div.style.position = 'fixed';
+          div.style.top = '50%';
+          div.style.left = '50%';
+          div.style.transform = 'translate(-50%, -50%)';
+          div.style.zIndex = '2000';
+          div.style.padding = '32px 80px';
+          div.style.background = 'linear-gradient(90deg, #ffef00 0%, #ff00cc 100%)';
+          div.style.color = '#222';
+          div.style.border = '6px solid #fff';
+          div.style.borderRadius = '22px';
+          div.style.fontSize = '2.5rem';
+          div.style.fontWeight = 'bold';
+          div.style.boxShadow = '0 8px 32px rgba(0,0,0,0.28)';
+          div.style.userSelect = 'none';
+          div.style.letterSpacing = '0.04em';
+          div.style.textAlign = 'center';
+          div.style.display = 'block';
+          document.body.appendChild(div);
+          roundFinishedText = div;
+        }
+
+        function hideRoundFinishedText() {
+          if (roundFinishedText) {
+            roundFinishedText.remove();
+            roundFinishedText = null;
+          }
+        }
+
+        // Start round handler
+        function startRound() {
+          roundPause = false;
+          roundActive = true;
+          roundTimer = 0;
+          hideRoundFinishedText();
+          startRoundBtn.style.display = 'none';
+        }
+
+        startRoundBtn.addEventListener('click', () => {
+          startRound();
+        });
+
+        // At game start, show the button
+        startRoundBtn.textContent = `Start round ${roundNumber}`;
+        startRoundBtn.style.display = 'block';
+
         // --- UI: Add a button to toggle searchlight (logic preserved, but button hidden for now) ---
         const toggleBtn = document.createElement('button');
         toggleBtn.textContent = 'Toggle Searchlight';
-        toggleBtn.style.position = 'fixed';
-        toggleBtn.style.top = '50%';
-        toggleBtn.style.left = '50%';
-        toggleBtn.style.transform = 'translate(-50%, -50%)';
-        toggleBtn.style.zIndex = '1000';
-        toggleBtn.style.padding = '16px 32px';
-        toggleBtn.style.background = 'rgba(30,40,60,0.96)';
-        toggleBtn.style.color = '#fff';
-        toggleBtn.style.border = '2px solid #00ccff';
-        toggleBtn.style.borderRadius = '10px';
-        toggleBtn.style.fontSize = '1.3rem';
-        toggleBtn.style.cursor = 'pointer';
-        toggleBtn.style.boxShadow = '0 4px 16px rgba(0,0,0,0.22)';
-        toggleBtn.style.userSelect = 'none';
-        toggleBtn.style.fontWeight = 'bold';
+        // ...existing code...
         toggleBtn.style.display = 'none'; // Hide for now
         document.body.appendChild(toggleBtn);
         toggleBtn.addEventListener('click', () => {
@@ -966,20 +1075,44 @@
           drawSearchlight();
         });
 
-        // --- Automatic random toggle between 600 and 900 frames ---
+        // --- Searchlight toggle every 600-900 frames, independent of round ---
         let searchlightFrameCounter = 0;
         let searchlightToggleInterval = 600 + Math.floor(Math.random() * 301); // 600-900 frames
         app.ticker.add(() => {
+          // Round system logic
+          if (roundActive) {
+            roundTimer++;
+            // Update round seconds-left UI
+            const secondsLeft = Math.max(0, Math.ceil((roundDuration - roundTimer) / 60));
+            roundTimeDiv.textContent = `Round: ${secondsLeft}s`;
+            if (roundTimer >= roundDuration) {
+              roundActive = false;
+              roundPause = true;
+              roundNumber++;
+              showRoundFinishedText(roundNumber - 1);
+              // After 2s, show the start button for next round
+              setTimeout(() => {
+                startRoundBtn.textContent = `Start round ${roundNumber}`;
+                startRoundBtn.style.display = 'block';
+                hideRoundFinishedText();
+              }, 2000);
+            }
+          } else {
+            // Hide timer if not in round
+            roundTimeDiv.textContent = '';
+          }
+          // Pause all game logic if not in round (except searchlight toggle)
+          if (!roundActive) return;
+        });
+
+        // Separate ticker for searchlight toggle (always runs)
+        app.ticker.add(() => {
           searchlightFrameCounter = (Number(searchlightFrameCounter) || 0) + 1;
-          // Debug: console.log('Searchlight frame counter:', searchlightFrameCounter, 'interval:', searchlightToggleInterval);
           if (searchlightFrameCounter >= searchlightToggleInterval) {
-            // Toggle searchlight
             searchlightFrameCounter = 0;
             window._searchlightState.visible = !window._searchlightState.visible;
             drawSearchlight();
-            // Pick a new random interval for next toggle
             searchlightToggleInterval = 600 + Math.floor(Math.random() * 301); // 600-900 frames
-            // Debug: console.log('New searchlight interval:', searchlightToggleInterval);
           }
         });
         
