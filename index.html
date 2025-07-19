@@ -1034,7 +1034,7 @@
         let roundNumber = 1;
         let roundActive = false;
         let roundTimer = 0;
-let roundDuration = 60 * 60; // 1 minute at 60fps (testing)
+let roundDuration = 60 * 5; // 5 seconds at 60fps (testing)
         let roundPause = true;
         let roundFinishedText = null;
         // Scoring and round stats
@@ -1184,29 +1184,70 @@ let enemyRocketInterval = 90; // frames between enemy rockets (1.5s at 60fps)
             const secondsLeft = Math.max(0, Math.ceil((roundDuration - roundTimer) / 60));
             roundTimeDiv.textContent = `Round: ${secondsLeft}s`;
             if (roundTimer >= roundDuration) {
-              // On round end, treat all flying enemy rockets as if hit by a friendly rocket (for scoring and explosion logic)
-              // Simultaneously destroy all flying enemy rockets at round end
-              rockets.filter(r => !r.isPlayerRocket).forEach(rocket => {
-                destroyEnemyRocketByPlayer(rocket, false); // false = not by player, do not increment score/stats
-              });
-              roundActive = false;
-              roundPause = true;
-              roundNumber++;
-              // Wait until all enemy rocket explosion particles are gone before showing round finished dialog
-              function waitForEnemyExplosionsAndShowDialog() {
-                if (explosionParticles.length === 0) {
-                  showRoundFinishedText(roundNumber - 1);
-                  // After 2s, show the start button for next round
-                  setTimeout(() => {
-                    startRoundBtn.textContent = `Start round ${roundNumber}`;
-                    startRoundBtn.style.display = 'block';
-                    hideRoundFinishedText();
-                  }, 2000);
-                } else {
-                  requestAnimationFrame(waitForEnemyExplosionsAndShowDialog);
-                }
+              // At round end, shoot red glowing lasers from antenna heads to each remaining enemy rocket, freezing them in place
+              // Only enemy rockets (not player rockets) are frozen
+              const unfrozenEnemyRockets = rockets.filter(r => !r.isPlayerRocket && !r.frozenByLaser);
+              if (unfrozenEnemyRockets.length === 0) {
+                // All enemy rockets already frozen, finish round logic but do NOT show end round dialog yet
+                // Do NOT set roundActive = false or roundPause = true here, and do NOT return; let the animation/game loop continue
+                // roundActive = false;
+                // roundPause = true;
+                // roundNumber++;
+                // showRoundFinishedText(roundNumber - 1); // DEFERRED: do not show dialog yet
+                // setTimeout(() => {
+                //   startRoundBtn.textContent = `Start round ${roundNumber}`;
+                //   startRoundBtn.style.display = 'block';
+                //   hideRoundFinishedText();
+                // }, 2000);
+                // return;
               }
-              waitForEnemyExplosionsAndShowDialog();
+              // Laser animation state
+              if (!window._laserFreezeState) {
+                window._laserFreezeState = {
+                  queue: rockets.filter(r => !r.isPlayerRocket && !r.frozenByLaser),
+                  antennaToggle: 0, // 0 = left, 1 = right
+                  laserContainer: new PIXI.Container(),
+                };
+                app.stage.addChild(window._laserFreezeState.laserContainer);
+              }
+              const state = window._laserFreezeState;
+              // Only process one enemy rocket per frame
+              if (state.queue.length > 0) {
+                const rocket = state.queue.shift();
+                // Antenna positions (top of left/right antenna heads)
+                const poleWidth = 4;
+                const poleHeight = 38;
+                const leftAntennaX = centerX - bunkerWidth / 2 - 6 + poleWidth / 2 + 8; // +8 for antenna head
+                const leftAntennaY = bottomY - bunkerHeight - 10 - poleHeight - 26; // -26 for antenna head
+                const rightAntennaX = centerX + bunkerWidth / 2 + 6 - poleWidth / 2 - 8; // -8 for antenna head
+                const rightAntennaY = bottomY - bunkerHeight - 10 - poleHeight - 26;
+                const fromX = state.antennaToggle === 0 ? leftAntennaX : rightAntennaX;
+                const fromY = state.antennaToggle === 0 ? leftAntennaY : rightAntennaY;
+                state.antennaToggle = 1 - state.antennaToggle;
+                // Draw glowing red laser
+                const laser = new PIXI.Graphics();
+                for (let i = 0; i < 4; i++) {
+                  const alpha = 0.22 - i * 0.05;
+                  const width = 7 - i * 2;
+                  laser.lineStyle(width, 0xff2222, alpha);
+                  laser.moveTo(fromX, fromY);
+                  laser.lineTo(rocket.x, rocket.y);
+                }
+                state.laserContainer.addChild(laser);
+                // Freeze enemy rocket in place
+                rocket.vx = 0;
+                rocket.vy = 0;
+                rocket.frozenByLaser = true;
+                // Remove laser after a short delay
+                setTimeout(() => {
+                  state.laserContainer.removeChild(laser);
+                }, 180);
+              }
+              // Continue processing next enemy rocket on next frame
+              requestAnimationFrame(() => {
+                roundTimer = roundDuration; // keep round in this state
+              });
+              return;
             }
           } else {
             // Hide timer if not in round
@@ -1254,8 +1295,8 @@ let comboTextSprite = null;
         // Add click handler to launch a green rocket from bunker roof towards mouse click
         app.canvas.addEventListener('click', (event) => {
           if (event.button === 0) {
-            // Disable firing if round is not active
-            if (!roundActive) return;
+            // Disable firing if round is not active or if round has ended (no new friendly rockets after roundTimer >= roundDuration)
+            if (!roundActive || roundTimer >= roundDuration) return;
             // Friendly rocket limit logic
             if (availableFriendlyRockets <= 0) {
               // Optionally: play a sound or flash icons
@@ -1343,6 +1384,8 @@ let comboTextSprite = null;
         // --- Automatic enemy rocket firing during active round ---
         app.ticker.add(() => {
           if (!roundActive) return;
+          // Prevent new enemy rockets from spawning after round end (when roundTimer >= roundDuration)
+          if (roundTimer >= roundDuration) return;
           enemyRocketFrameCounter++;
           if (enemyRocketFrameCounter >= enemyRocketInterval) {
             enemyRocketFrameCounter = 0;
@@ -1486,13 +1529,18 @@ let comboTextSprite = null;
           if (idx !== -1) rockets.splice(idx, 1);
           if (byPlayer) {
             rocketsDestroyed++;
-            // Combo logic (for text only, not scoring)
+            let comboBonus = 0;
+            // Combo logic
             if (explosionId) {
               if (!playerExplosionCombos[explosionId]) {
                 playerExplosionCombos[explosionId] = { count: 0, x: rocket.x, y: rocket.y, lastComboShown: 0 };
               }
               const combo = playerExplosionCombos[explosionId];
               combo.count++;
+              // Combo bonus: for 2x combo, +200; 3x combo, +300, etc. (in addition to base 100)
+              if (combo.count >= 2) {
+                comboBonus = combo.count * 100;
+              }
               // Show combo text only when count >= 2 and only if this is a new max
               console.log(`Rocket destroyed by player explosion ${explosionId}: count = ${combo.count}`); 
               if (combo.count >= 2 && combo.count > combo.lastComboShown) {
@@ -1500,7 +1548,7 @@ let comboTextSprite = null;
                 combo.lastComboShown = combo.count;
               }
             }
-            playerScore += 100;
+            playerScore += 100 + comboBonus;
             scoreDiv.textContent = `Score: ${playerScore}`;
           }
         }
