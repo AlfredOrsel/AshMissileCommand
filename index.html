@@ -1431,22 +1431,38 @@ app.ticker.add(() => {
         // Ball position along the laser
         const bx = laser.fromX + dx * t;
         const by = laser.fromY + dy * t;
-        // Draw glow
-        const glow = new PIXI.Graphics();
-        glow.beginFill(ball.glowColor, ball.glowAlpha * (0.7 + 0.3 * t));
-        glow.drawCircle(0, 0, ball.radius * (1.7 + 0.7 * t));
-        glow.endFill();
-        glow.x = bx;
-        glow.y = by;
-        laserContainer.addChild(glow);
-        // Draw solid ball
-        const core = new PIXI.Graphics();
-        core.beginFill(ball.color, 0.98);
-        core.drawCircle(0, 0, ball.radius);
-        core.endFill();
-        core.x = bx;
-        core.y = by;
-        laserContainer.addChild(core);
+        // Flicker: alternate between fully visible and invisible (on/off)
+        const flickerPeriod = 90; // ms, about 11Hz
+        const flickerOn = Math.floor((now - ball.startTime) / flickerPeriod) % 2 === 0;
+        const flickerAlpha = flickerOn ? ball.glowAlpha * (0.7 + 0.3 * t) : 0.0;
+        const flickerScale = flickerOn ? 1.0 : 1.0;
+        // Elliptical glow: major axis along laser direction (twice as long, slightly larger glow)
+        const ellipseA = ball.radius * (1.7 + 0.7 * t) * 1.7 * 2.0 * flickerScale * 1.12; // major axis, doubled and slightly larger
+        const ellipseB = ball.radius * (1.7 + 0.7 * t) * 0.7 * flickerScale * 1.12 * 1.5; // minor axis, 1.5x wider
+        // Draw elliptical glow (flicker)
+        if (flickerAlpha > 0.01) {
+          const glow = new PIXI.Graphics();
+          glow.beginFill(ball.glowColor, flickerAlpha);
+          glow.drawEllipse(0, 0, ellipseA, ellipseB);
+          glow.endFill();
+          glow.x = bx;
+          glow.y = by;
+          glow.rotation = angle; // orient along laser
+          laserContainer.addChild(glow);
+        }
+        // Draw solid elliptical core (flicker)
+        if (flickerOn) {
+          const coreA = ball.radius * 1.1 * 2.0; // doubled major axis
+          const coreB = ball.radius * 0.7 * 1.5;
+          const core = new PIXI.Graphics();
+          core.beginFill(ball.color, 0.98);
+          core.drawEllipse(0, 0, coreA, coreB);
+          core.endFill();
+          core.x = bx;
+          core.y = by;
+          core.rotation = angle;
+          laserContainer.addChild(core);
+        }
         // Remove glowingBall after it reaches the end and trigger rocket explosion
         if (t >= 1) {
           // Find the rocket at the laser's toX, toY (with small tolerance)
