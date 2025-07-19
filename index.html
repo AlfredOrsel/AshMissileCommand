@@ -1094,19 +1094,15 @@
             roundTimeDiv.textContent = `Round: ${secondsLeft}s`;
             if (roundTimer >= roundDuration) {
               // On round end, treat all flying enemy rockets as if hit by a friendly rocket (for scoring and explosion logic)
-              for (let i = rockets.length - 1; i >= 0; i--) {
-                const rocket = rockets[i];
-                if (!rocket.isPlayerRocket) {
-                  destroyEnemyRocketByPlayer(rocket, false); // false = not by player, do not increment score/stats
-                }
-              }
+              // Simultaneously destroy all flying enemy rockets at round end
+              rockets.filter(r => !r.isPlayerRocket).forEach(rocket => {
+                destroyEnemyRocketByPlayer(rocket, false); // false = not by player, do not increment score/stats
+              });
               roundActive = false;
               roundPause = true;
               roundNumber++;
               // Wait until all enemy rocket explosion particles are gone before showing round finished dialog
               function waitForEnemyExplosionsAndShowDialog() {
-                // Check if any explosionParticles remain that were created for enemy rockets
-                // We'll assume all explosionParticles are for enemy rockets at this point
                 if (explosionParticles.length === 0) {
                   showRoundFinishedText(roundNumber - 1);
                   // After 2s, show the start button for next round
@@ -1491,14 +1487,14 @@
         // Animation loop for exploding pieces
         // Create a red/yellow/orange burst explosion with trails (for enemy rocket destruction)
         function createRedBurstExplosion(x, y) {
-          const burstCount = 4 * (32 + Math.floor(Math.random() * 16)); // 128-192 particles
+          const burstCount = 4 * (25 + Math.floor(Math.random() * 11)); // 100-140 particles
           for (let i = 0; i < burstCount; i++) {
             const particle = new PIXI.Graphics();
             // Red/yellow/orange colors
             const colors = [0xFF2222, 0xFF6600, 0xFFAA00, 0xFFD700, 0xFF8800];
             const color = colors[Math.floor(Math.random() * colors.length)];
             particle.beginFill(color);
-            particle.drawCircle(0, 0, 2 + Math.random() * 2);
+            particle.drawCircle(0, 0, 1 + Math.random() * 1.2); // Smaller size
             particle.endFill();
             particle.x = x;
             particle.y = y;
@@ -1509,6 +1505,8 @@
             particle.type = 'redBurst';
             particle.trail = [];
             particle.maxTrailLength = 12 + Math.floor(Math.random() * 8);
+            particle.life = 1.0;
+            particle.maxLife = 40 + Math.random() * 40; // 40-80 frames (shorter lifetime)
             explosionParticles.push(particle);
             app.stage.addChild(particle);
           }
