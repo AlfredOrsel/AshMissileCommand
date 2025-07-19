@@ -1359,37 +1359,59 @@ app.ticker.add(() => {
       laserContainer.addChild(rect);
 
       // --- Wave effect: a less transparent red section, soft gradient, travels from antenna to rocket ---
-      // Parameters for the wave
-      const waveLength = Math.max(60, length * 0.18); // length of the wave section
-      const waveSpeed = 0.7; // pixels per ms
+      // Each laser can have a 'waveActiveUntil' property. If not set or in the future, show wave. If expired, show only the base laser.
+      if (!('waveActiveUntil' in laser)) {
+        // Schedule the wave to end for this laser, one by one, separated by 1s
+        if (!window._laserWaveEndQueue) window._laserWaveEndQueue = [];
+        if (!window._laserWaveEndStarted) {
+          window._laserWaveEndStarted = true;
+          // Start the process after all lasers are created
+          setTimeout(() => {
+            function nextWaveEnd() {
+              if (window._laserWaveEndQueue.length === 0) return;
+              const l = window._laserWaveEndQueue.shift();
+              l.waveActiveUntil = performance.now() + 100; // will expire next frame
+              setTimeout(nextWaveEnd, 5000);
+            }
+            setTimeout(nextWaveEnd, 5000); // Wait 5s before the first laser reverts
+          }, 400); // small delay to ensure all lasers are present
+        }
+        window._laserWaveEndQueue.push(laser);
+        laser.waveActiveUntil = Infinity; // will be set to expire when its turn comes
+      }
       const now = performance.now();
-      const t = ((now - (laser.created || now)) * waveSpeed) % (length + waveLength);
-      // The wave center moves from 0 to length
-      const waveCenter = Math.min(length, t);
-      // Draw the wave as a rectangle with a horizontal gradient alpha
-      // We'll use PIXI.Graphics for the wave, but simulate a gradient by drawing many thin rects
-      const waveThickness = thickness + 2; // slightly thicker than main laser
-      const waveMaxAlpha = 0.85; // less transparent (more solid) than main laser
-      const waveMinAlpha = 0.0;
-      const steps = 32;
-      for (let i = 0; i < steps; i++) {
-        // Position along the wave
-        const rel = (i + 0.5) / steps; // 0..1
-        // Map to position along the wave section
-        const x = waveCenter - waveLength / 2 + rel * waveLength;
-        if (x < 0 || x > length) continue; // Don't draw outside the laser
-        // Alpha forms a "wave": max at center, fades at ends (cosine curve)
-        const distFromCenter = Math.abs(rel - 0.5) * 2; // 0 at center, 1 at ends
-        const alpha = waveMinAlpha + (waveMaxAlpha - waveMinAlpha) * Math.pow(Math.cos(distFromCenter * Math.PI / 2), 2);
-        if (alpha < 0.01) continue;
-        const seg = new PIXI.Graphics();
-        seg.beginFill(0xff2222, alpha);
-        seg.drawRect(x - waveLength / (2 * steps), -waveThickness / 2, waveLength / steps, waveThickness);
-        seg.endFill();
-        seg.x = laser.fromX;
-        seg.y = laser.fromY;
-        seg.rotation = angle;
-        laserContainer.addChild(seg);
+      if (laser.waveActiveUntil > now) {
+        // Show wave animation
+        const waveLength = Math.max(60, length * 0.18); // length of the wave section
+        const waveSpeed = 0.7; // pixels per ms
+        const t = ((now - (laser.created || now)) * waveSpeed) % (length + waveLength);
+        // The wave center moves from 0 to length
+        const waveCenter = Math.min(length, t);
+        // Draw the wave as a rectangle with a horizontal gradient alpha
+        // We'll use PIXI.Graphics for the wave, but simulate a gradient by drawing many thin rects
+        const waveThickness = thickness + 2; // slightly thicker than main laser
+        const waveMaxAlpha = 0.85; // less transparent (more solid) than main laser
+        const waveMinAlpha = 0.0;
+        const steps = 32;
+        for (let i = 0; i < steps; i++) {
+          // Position along the wave
+          const rel = (i + 0.5) / steps; // 0..1
+          // Map to position along the wave section
+          const x = waveCenter - waveLength / 2 + rel * waveLength;
+          if (x < 0 || x > length) continue; // Don't draw outside the laser
+          // Alpha forms a "wave": max at center, fades at ends (cosine curve)
+          const distFromCenter = Math.abs(rel - 0.5) * 2; // 0 at center, 1 at ends
+          const alpha = waveMinAlpha + (waveMaxAlpha - waveMinAlpha) * Math.pow(Math.cos(distFromCenter * Math.PI / 2), 2);
+          if (alpha < 0.01) continue;
+          const seg = new PIXI.Graphics();
+          seg.beginFill(0xff2222, alpha);
+          seg.drawRect(x - waveLength / (2 * steps), -waveThickness / 2, waveLength / steps, waveThickness);
+          seg.endFill();
+          seg.x = laser.fromX;
+          seg.y = laser.fromY;
+          seg.rotation = angle;
+          laserContainer.addChild(seg);
+        }
       }
     }
     // Log the entire array
