@@ -844,14 +844,17 @@
         const searchlightContainer = new PIXI.Container();
         app.stage.addChildAt(searchlightContainer, 0); // behind bunker
 
-        // Store state for animation (angle, etc.) if needed later
+        // Store state for animation (angle, etc.) and visibility
         window._searchlightState = {
-          angle: 0 // straight up
+          angle: 0, // straight up
+          visible: true // searchlight is on by default
         };
 
         function drawSearchlight() {
           // Remove previous beam
           searchlightContainer.removeChildren();
+          // Only draw if visible
+          if (!window._searchlightState.visible) return;
           // Parameters for searchlight
           const beamBaseY = bottomY - bunkerHeight - 10; // roof top
           const beamBaseX = centerX;
@@ -936,6 +939,48 @@
             sweepDir = 1;
           }
           drawSearchlight();
+        });
+
+        // --- UI: Add a button to toggle searchlight (logic preserved, but button hidden for now) ---
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = 'Toggle Searchlight';
+        toggleBtn.style.position = 'fixed';
+        toggleBtn.style.top = '50%';
+        toggleBtn.style.left = '50%';
+        toggleBtn.style.transform = 'translate(-50%, -50%)';
+        toggleBtn.style.zIndex = '1000';
+        toggleBtn.style.padding = '16px 32px';
+        toggleBtn.style.background = 'rgba(30,40,60,0.96)';
+        toggleBtn.style.color = '#fff';
+        toggleBtn.style.border = '2px solid #00ccff';
+        toggleBtn.style.borderRadius = '10px';
+        toggleBtn.style.fontSize = '1.3rem';
+        toggleBtn.style.cursor = 'pointer';
+        toggleBtn.style.boxShadow = '0 4px 16px rgba(0,0,0,0.22)';
+        toggleBtn.style.userSelect = 'none';
+        toggleBtn.style.fontWeight = 'bold';
+        toggleBtn.style.display = 'none'; // Hide for now
+        document.body.appendChild(toggleBtn);
+        toggleBtn.addEventListener('click', () => {
+          window._searchlightState.visible = !window._searchlightState.visible;
+          drawSearchlight();
+        });
+
+        // --- Automatic random toggle between 600 and 900 frames ---
+        let searchlightFrameCounter = 0;
+        let searchlightToggleInterval = 600 + Math.floor(Math.random() * 301); // 600-900 frames
+        app.ticker.add(() => {
+          searchlightFrameCounter = (Number(searchlightFrameCounter) || 0) + 1;
+          // Debug: console.log('Searchlight frame counter:', searchlightFrameCounter, 'interval:', searchlightToggleInterval);
+          if (searchlightFrameCounter >= searchlightToggleInterval) {
+            // Toggle searchlight
+            searchlightFrameCounter = 0;
+            window._searchlightState.visible = !window._searchlightState.visible;
+            drawSearchlight();
+            // Pick a new random interval for next toggle
+            searchlightToggleInterval = 600 + Math.floor(Math.random() * 301); // 600-900 frames
+            // Debug: console.log('New searchlight interval:', searchlightToggleInterval);
+          }
         });
         
         // Create a rocket function
