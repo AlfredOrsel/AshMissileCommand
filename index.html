@@ -719,6 +719,59 @@
         }
         drawDishOnRightPole();
 
+        // --- FRIENDLY ROCKET ICONS (visual indicator, step 1) ---
+        // Container for rocket icons
+        const rocketIconsContainer = new PIXI.Container();
+        app.stage.addChild(rocketIconsContainer);
+
+        // --- FRIENDLY ROCKET LIMIT LOGIC (step 2) ---
+        const MAX_FRIENDLY_ROCKETS = 3;
+        let availableFriendlyRockets = MAX_FRIENDLY_ROCKETS;
+        // Each element: true = green (available), false = red (used)
+        let rocketIconsState = [true, true, true];
+
+        // Draw/update the 3 rocket icons (triangles)
+        function drawRocketIcons(iconsState = rocketIconsState) {
+          rocketIconsContainer.removeChildren();
+          const iconCount = 3;
+          const iconSpacing = 20; // closer together
+          const iconWidth = 12;   // smaller width
+          const iconHeight = 18;  // smaller height
+          const y = bottomY - bunkerHeight - 44; // move up by 10px
+          const totalWidth = (iconCount - 1) * iconSpacing;
+          const startX = centerX - totalWidth / 2;
+          for (let i = 0; i < iconCount; i++) {
+            const icon = new PIXI.Graphics();
+            const color = iconsState[i] ? 0x00ff44 : 0xff2222;
+            icon.beginFill(color);
+            icon.moveTo(0, 0);
+            icon.lineTo(iconWidth / 2, -iconHeight);
+            icon.lineTo(iconWidth, 0);
+            icon.lineTo(0, 0);
+            icon.endFill();
+            icon.x = startX + i * iconSpacing - iconWidth / 2;
+            icon.y = y;
+            rocketIconsContainer.addChild(icon);
+          }
+        }
+        // Draw initial icons (all green)
+        drawRocketIcons();
+
+        // Restore one rocket every second (rightmost red turns green)
+        setInterval(() => {
+          if (availableFriendlyRockets < MAX_FRIENDLY_ROCKETS) {
+            // Find rightmost red (used) icon
+            for (let i = MAX_FRIENDLY_ROCKETS - 1; i >= 0; i--) {
+              if (!rocketIconsState[i]) {
+                rocketIconsState[i] = true;
+                availableFriendlyRockets++;
+                drawRocketIcons();
+                break;
+              }
+            }
+          }
+        }, 1000);
+
         // Draw the central bunker as a military structure
         function drawBunker(centerX, bottomY) {
           // (Searchlight beam logic moved to animation loop)
@@ -1166,8 +1219,12 @@
         // Add click handler to launch a green rocket from bunker roof towards mouse click
         app.canvas.addEventListener('click', (event) => {
           if (event.button === 0) {
+            // Friendly rocket limit logic
+            if (availableFriendlyRockets <= 0) {
+              // Optionally: play a sound or flash icons
+              return;
+            }
             // Get mouse position relative to canvas
-            console.log('Mouse click at:', event.clientX, event.clientY);
             const rect = app.canvas.getBoundingClientRect();
             const mouseX = (event.clientX - rect.left) * (app.screen.width / rect.width);
             const mouseY = (event.clientY - rect.top) * (app.screen.height / rect.height);
@@ -1197,6 +1254,15 @@
             rocket.targetY = mouseY;
             rockets.push(rocket);
             app.stage.addChild(rocket);
+            // Update rocket icon state: leftmost green turns red
+            for (let i = 0; i < MAX_FRIENDLY_ROCKETS; i++) {
+              if (rocketIconsState[i]) {
+                rocketIconsState[i] = false;
+                availableFriendlyRockets--;
+                drawRocketIcons();
+                break;
+              }
+            }
           }
         });
 
