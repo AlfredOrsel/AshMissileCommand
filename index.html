@@ -1040,7 +1040,7 @@ let roundDuration = 60 * 60; // 1 minute at 60fps (testing)
         // Scoring and round stats
         let rocketsDestroyed = 0;
         let buildingsDestroyed = 0;
-let enemyRocketInterval = 12; // frames between enemy rockets (0.2s at 60fps, for testing)
+let enemyRocketInterval = 90; // frames between enemy rockets (1.5s at 60fps)
         let enemyRocketFrameCounter = 0;
 
         // --- PLAYER SCORE AND ROUND TIMER UI ---
@@ -1486,10 +1486,7 @@ let comboTextSprite = null;
           if (idx !== -1) rockets.splice(idx, 1);
           if (byPlayer) {
             rocketsDestroyed++;
-            playerScore += 100;
-            scoreDiv.textContent = `Score: ${playerScore}`;
-            // Combo logic
-            console.log(explosionId, 'Explosion ID for combo:', explosionId);
+            // Combo logic (for text only, not scoring)
             if (explosionId) {
               if (!playerExplosionCombos[explosionId]) {
                 playerExplosionCombos[explosionId] = { count: 0, x: rocket.x, y: rocket.y, lastComboShown: 0 };
@@ -1503,6 +1500,8 @@ let comboTextSprite = null;
                 combo.lastComboShown = combo.count;
               }
             }
+            playerScore += 100;
+            scoreDiv.textContent = `Score: ${playerScore}`;
           }
         }
 
