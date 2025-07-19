@@ -743,12 +743,42 @@
           for (let i = 0; i < iconCount; i++) {
             const icon = new PIXI.Graphics();
             const color = iconsState[i] ? 0x00ff44 : 0xff2222;
-            icon.beginFill(color);
-            icon.moveTo(0, 0);
-            icon.lineTo(iconWidth / 2, -iconHeight);
-            icon.lineTo(iconWidth, 0);
-            icon.lineTo(0, 0);
+            // Draw missile body (rectangle)
+            const bodyWidth = 5;
+            const bodyHeight = 12;
+            // If unavailable (red), body is red; if available, body is gray
+            const bodyColor = iconsState[i] ? 0xcccccc : 0xff2222;
+            icon.beginFill(bodyColor);
+            icon.drawRect((iconWidth - bodyWidth) / 2, -bodyHeight, bodyWidth, bodyHeight);
             icon.endFill();
+
+            // Draw nose cone (triangle)
+            icon.beginFill(color); // green or red nose
+            icon.moveTo(iconWidth / 2, -iconHeight); // tip
+            icon.lineTo((iconWidth / 2) - 4, -bodyHeight);
+            icon.lineTo((iconWidth / 2) + 4, -bodyHeight);
+            icon.lineTo(iconWidth / 2, -iconHeight);
+            icon.endFill();
+
+            // Draw fins (two small triangles)
+            icon.beginFill(0x888888); // darker gray for fins
+            // Left fin
+            icon.moveTo((iconWidth / 2) - 2, 0);
+            icon.lineTo((iconWidth / 2) - 7, 4);
+            icon.lineTo((iconWidth / 2) - 2, -2);
+            icon.lineTo((iconWidth / 2) - 2, 0);
+            // Right fin
+            icon.moveTo((iconWidth / 2) + 2, 0);
+            icon.lineTo((iconWidth / 2) + 7, 4);
+            icon.lineTo((iconWidth / 2) + 2, -2);
+            icon.lineTo((iconWidth / 2) + 2, 0);
+            icon.endFill();
+
+            // Optional: Draw a small exhaust circle at the base
+            icon.beginFill(0xffcc00, 0.7); // yellow-orange exhaust
+            icon.drawCircle(iconWidth / 2, 2, 1.5);
+            icon.endFill();
+
             icon.x = startX + i * iconSpacing - iconWidth / 2;
             icon.y = y;
             rocketIconsContainer.addChild(icon);
@@ -757,20 +787,22 @@
         // Draw initial icons (all green)
         drawRocketIcons();
 
-        // Restore one rocket every second (rightmost red turns green)
-        setInterval(() => {
-          if (availableFriendlyRockets < MAX_FRIENDLY_ROCKETS) {
-            // Find rightmost red (used) icon
-            for (let i = MAX_FRIENDLY_ROCKETS - 1; i >= 0; i--) {
-              if (!rocketIconsState[i]) {
-                rocketIconsState[i] = true;
-                availableFriendlyRockets++;
-                drawRocketIcons();
-                break;
-              }
+        // Per-rocket cooldown timers: when a rocket is fired, start a 2s timer to restore it
+        let rocketCooldownTimers = [null, null, null];
+
+        function startRocketCooldown(index) {
+          if (rocketCooldownTimers[index]) return; // Already running
+          rocketCooldownTimers[index] = setTimeout(() => {
+            // Restore this rocket slot only
+            if (!rocketIconsState[index]) {
+              rocketIconsState[index] = true;
+              availableFriendlyRockets++;
+              drawRocketIcons();
             }
-          }
-        }, 1000);
+            clearTimeout(rocketCooldownTimers[index]);
+            rocketCooldownTimers[index] = null;
+          }, 2000);
+        }
 
         // Draw the central bunker as a military structure
         function drawBunker(centerX, bottomY) {
@@ -1254,12 +1286,13 @@
             rocket.targetY = mouseY;
             rockets.push(rocket);
             app.stage.addChild(rocket);
-            // Update rocket icon state: leftmost green turns red
+            // Update rocket icon state: leftmost green turns red and start cooldown for that slot
             for (let i = 0; i < MAX_FRIENDLY_ROCKETS; i++) {
               if (rocketIconsState[i]) {
                 rocketIconsState[i] = false;
                 availableFriendlyRockets--;
                 drawRocketIcons();
+                startRocketCooldown(i);
                 break;
               }
             }
