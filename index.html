@@ -721,25 +721,7 @@
 
         // Draw the central bunker as a military structure
         function drawBunker(centerX, bottomY) {
-          // --- SEARCHLIGHT BEAM (faint, upward, narrow at base, wider at top, NO fading, constant faintness) ---
-          // Parameters for searchlight
-          const beamBaseY = bottomY - bunkerHeight - 10; // roof top
-          const beamBaseX = centerX;
-          const beamHeight = beamBaseY;
-          const beamBaseWidth = 4;
-          const beamTopWidth = 120;
-          const beamAlpha = 0.13;
-          // Draw the beam as a single polygon (trapezoid) with constant faint alpha, no gradient, no fading
-          const searchlight = new PIXI.Graphics();
-          searchlight.beginFill(0xffffcc, beamAlpha); // constant alpha, no gradient, no fading
-          // The polygon is a trapezoid from the bunker roof to the very top, all with the same alpha
-          searchlight.moveTo(beamBaseX - beamBaseWidth / 2, beamBaseY);
-          searchlight.lineTo(beamBaseX + beamBaseWidth / 2, beamBaseY);
-          searchlight.lineTo(beamBaseX + beamTopWidth / 2, 0);
-          searchlight.lineTo(beamBaseX - beamTopWidth / 2, 0);
-          searchlight.closePath();
-          searchlight.endFill();
-          app.stage.addChild(searchlight);
+          // (Searchlight beam logic moved to animation loop)
           // --- TOP TRAPEZOID STRUCTURE ---
           // Smaller trapezoid dimensions
           const trapezoidWidth = bunkerWidth * 0.45;
@@ -856,6 +838,105 @@
           app.stage.addChild(poleRight);
         }
         drawBunker(centerX, bottomY);
+
+        // --- SEARCHLIGHT BEAM: Draw and animate in main loop ---
+        // Create a container for the searchlight so we can update it each frame
+        const searchlightContainer = new PIXI.Container();
+        app.stage.addChildAt(searchlightContainer, 0); // behind bunker
+
+        // Store state for animation (angle, etc.) if needed later
+        window._searchlightState = {
+          angle: 0 // straight up
+        };
+
+        function drawSearchlight() {
+          // Remove previous beam
+          searchlightContainer.removeChildren();
+          // Parameters for searchlight
+          const beamBaseY = bottomY - bunkerHeight - 10; // roof top
+          const beamBaseX = centerX;
+          const beamBaseWidth = 4;
+          const beamTopWidth = 120;
+          const beamAlpha = 0.13;
+          // Animate angle (in radians)
+          const angle = window._searchlightState.angle || 0;
+          // Extend the beam much further into the sky (2.5x the screen height)
+          const farSkyY = beamBaseY - app.screen.height * 2.5;
+          // Base points (at bunker roof)
+          const baseLeft = rotatePoint(
+            beamBaseX - beamBaseWidth / 2,
+            beamBaseY,
+            beamBaseX,
+            beamBaseY,
+            angle
+          );
+          const baseRight = rotatePoint(
+            beamBaseX + beamBaseWidth / 2,
+            beamBaseY,
+            beamBaseX,
+            beamBaseY,
+            angle
+          );
+          // Top points (far into the sky)
+          const topLeft = rotatePoint(
+            beamBaseX - beamTopWidth / 2,
+            farSkyY,
+            beamBaseX,
+            beamBaseY,
+            angle
+          );
+          const topRight = rotatePoint(
+            beamBaseX + beamTopWidth / 2,
+            farSkyY,
+            beamBaseX,
+            beamBaseY,
+            angle
+          );
+          // Draw the beam as a single polygon (trapezoid) with constant faint alpha
+          const searchlight = new PIXI.Graphics();
+          searchlight.beginFill(0xffffcc, beamAlpha);
+          searchlight.moveTo(baseLeft.x, baseLeft.y);
+          searchlight.lineTo(baseRight.x, baseRight.y);
+          searchlight.lineTo(topRight.x, topRight.y);
+          searchlight.lineTo(topLeft.x, topLeft.y);
+          searchlight.closePath();
+          searchlight.endFill();
+          searchlightContainer.addChild(searchlight);
+        }
+
+        // Helper to rotate a point (x, y) around (cx, cy) by angle (radians)
+        function rotatePoint(x, y, cx, cy, angle) {
+          const dx = x - cx;
+          const dy = y - cy;
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          return {
+            x: cx + dx * cos - dy * sin,
+            y: cy + dx * sin + dy * cos
+          };
+        }
+
+        // Draw once initially
+        drawSearchlight();
+
+        // Update searchlight in main animation loop
+        let sweepDir = 1;
+        app.ticker.add(() => {
+          // Animate angle: sweep left/right between -0.52 and +0.52 radians (about -30 to +30 deg)
+          const state = window._searchlightState;
+          if (!state.angle) state.angle = 0;
+          const sweepSpeed = 0.0035;
+          state.angle += sweepSpeed * sweepDir;
+          const maxAngle = 0.52;
+          if (state.angle > maxAngle) {
+            state.angle = maxAngle;
+            sweepDir = -1;
+          } else if (state.angle < -maxAngle) {
+            state.angle = -maxAngle;
+            sweepDir = 1;
+          }
+          drawSearchlight();
+        });
         
         // Create a rocket function
         function createRocket() {
