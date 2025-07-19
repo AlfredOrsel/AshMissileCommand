@@ -1419,16 +1419,12 @@ let comboTextSprite = null;
     app.stage.removeChild(window.comboTextSprite);
     window.comboTextSprite = null;
   }
+  // Use a single solid color (yellow) for combo text
+  const fontSize = 24 + Math.min(20, (comboCount - 2) * 4);
   const comboText = new PIXI.Text(`X${comboCount} Combo`, {
     fontFamily: 'Arial Black, Arial, sans-serif',
-    fontSize: 24,
-    fill: {
-      type: 'linear-horizontal',
-      stops: [
-        { color: 0xffff00, offset: 0 },
-        { color: 0xffe135, offset: 1 }
-      ]
-    },
+    fontSize: fontSize,
+    fill: 0xffff00,
     fontWeight: 'bold',
     stroke: '#ff8800',
     strokeThickness: 6,
@@ -1816,7 +1812,21 @@ let comboTextSprite = null;
                 rocket.y >= by &&
                 rocket.y <= by + buildingHeight
               ) {
-                explodeBuildingAt(bIdx);
+                // Check if building is already destroyed
+                let buildingIsDestroyed = true;
+                for (let piece of buildingPieces) {
+                  if (
+                    piece.originalX >= buildingCenters[bIdx] &&
+                    piece.originalX < buildingCenters[bIdx] + buildingWidth &&
+                    !piece.landed
+                  ) {
+                    buildingIsDestroyed = false;
+                    break;
+                  }
+                }
+                if (!buildingIsDestroyed) {
+                  explodeBuildingAt(bIdx);
+                } // else: already destroyed, just remove rocket silently
                 app.stage.removeChild(rocket);
                 rocket.trail.forEach(trail => app.stage.removeChild(trail));
                 rockets.splice(i, 1);
