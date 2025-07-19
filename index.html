@@ -1030,13 +1030,13 @@
         let roundNumber = 1;
         let roundActive = false;
         let roundTimer = 0;
-        let roundDuration = 10 * 60; // 10 seconds at 60fps (testing)
+let roundDuration = 60 * 60; // 1 minute at 60fps (testing)
         let roundPause = true;
         let roundFinishedText = null;
         // Scoring and round stats
         let rocketsDestroyed = 0;
         let buildingsDestroyed = 0;
-        let enemyRocketInterval = 90; // frames between enemy rockets (1.5s at 60fps, can scale with round)
+let enemyRocketInterval = 12; // frames between enemy rockets (0.2s at 60fps, for testing)
         let enemyRocketFrameCounter = 0;
 
         // --- PLAYER SCORE AND ROUND TIMER UI ---
@@ -1241,16 +1241,15 @@
           app.stage.addChild(rocket);
         }
         
-        // Add keyboard handler to create rockets and test enemy explosion
-        window.addEventListener('keydown', (event) => {
-          if (event.code === 'Space') {
-            createRocket();
-          }
-        });
+        // Add keyboard handler to create rockets, test enemy explosion, and show combo effect
+// Removed 'K' key handler for combo test
+let comboTextSprite = null;
 
         // Add click handler to launch a green rocket from bunker roof towards mouse click
         app.canvas.addEventListener('click', (event) => {
           if (event.button === 0) {
+            // Disable firing if round is not active
+            if (!roundActive) return;
             // Friendly rocket limit logic
             if (availableFriendlyRockets <= 0) {
               // Optionally: play a sound or flash icons
@@ -1284,6 +1283,8 @@
             rocket.isPlayerRocket = true;
             rocket.targetX = mouseX;
             rocket.targetY = mouseY;
+            // Assign a unique explosionId for combo tracking
+            rocket.explosionId = nextExplosionId++;
             rockets.push(rocket);
             app.stage.addChild(rocket);
             // Update rocket icon state: leftmost green turns red and start cooldown for that slot
@@ -1405,8 +1406,74 @@
         }
         // --- Add scoring for enemy rocket destruction by player ---
 
+        // Combo detection: track which player explosion destroyed which enemy rockets
+        // Map: explosionId -> { count, x, y, lastComboShown }
+        const playerExplosionCombos = {};
+        let nextExplosionId = 1;
+
+        // Helper to show combo text at (x, y) with given combo count
+        function showComboText(comboCount, x, y) {
+  if (comboCount < 2) return;
+  // Remove previous combo text if present
+  if (window.comboTextSprite) {
+    app.stage.removeChild(window.comboTextSprite);
+    window.comboTextSprite = null;
+  }
+  const comboText = new PIXI.Text(`X${comboCount} Combo`, {
+    fontFamily: 'Arial Black, Arial, sans-serif',
+    fontSize: 24,
+    fill: {
+      type: 'linear-horizontal',
+      stops: [
+        { color: 0xffff00, offset: 0 },
+        { color: 0xffe135, offset: 1 }
+      ]
+    },
+    fontWeight: 'bold',
+    stroke: '#ff8800',
+    strokeThickness: 6,
+    dropShadow: true,
+    dropShadowColor: '#222',
+    dropShadowBlur: 8,
+    dropShadowDistance: 0,
+    align: 'center',
+  });
+  comboText.anchor.set(0.5, 0.5);
+  comboText.x = x;
+  comboText.y = y + 32; // Show below the explosion
+  comboText.alpha = 1.0;
+  app.stage.addChild(comboText);
+  window.comboTextSprite = comboText;
+  // Animate fade out and movement over 1.2s
+  const fadeDuration = 72; // frames at 60fps
+  let fadeFrame = 0;
+  const startX = comboText.x;
+  const startY = comboText.y;
+  const isLeft = startX < app.screen.width / 2;
+  const dx = (isLeft || startX === app.screen.width / 2) ? 40 : -40;
+  const dy = 40;
+  function fadeCombo() {
+    fadeFrame++;
+    if (!window.comboTextSprite) return;
+    const t = fadeFrame / fadeDuration;
+    window.comboTextSprite.alpha = 1 - t;
+    window.comboTextSprite.x = startX + dx * t;
+    window.comboTextSprite.y = startY + dy * t;
+    if (fadeFrame < fadeDuration) {
+      requestAnimationFrame(fadeCombo);
+    } else {
+      if (window.comboTextSprite) {
+        app.stage.removeChild(window.comboTextSprite);
+        window.comboTextSprite = null;
+      }
+    }
+  }
+  fadeCombo();
+        }
+
         // Unified function: destroy enemy rocket as if hit by friendly rocket explosion
-        function destroyEnemyRocketByPlayer(rocket, byPlayer = true) {
+        // If destroyed by player, pass explosionId to track combos
+        function destroyEnemyRocketByPlayer(rocket, byPlayer = true, explosionId = null) {
           createRedBurstExplosion(rocket.x, rocket.y);
           app.stage.removeChild(rocket);
           if (rocket.trail) rocket.trail.forEach(trail => app.stage.removeChild(trail));
@@ -1416,6 +1483,21 @@
             rocketsDestroyed++;
             playerScore += 100;
             scoreDiv.textContent = `Score: ${playerScore}`;
+            // Combo logic
+            console.log(explosionId, 'Explosion ID for combo:', explosionId);
+            if (explosionId) {
+              if (!playerExplosionCombos[explosionId]) {
+                playerExplosionCombos[explosionId] = { count: 0, x: rocket.x, y: rocket.y, lastComboShown: 0 };
+              }
+              const combo = playerExplosionCombos[explosionId];
+              combo.count++;
+              // Show combo text only when count >= 2 and only if this is a new max
+              console.log(`Rocket destroyed by player explosion ${explosionId}: count = ${combo.count}`); 
+              if (combo.count >= 2 && combo.count > combo.lastComboShown) {
+                showComboText(combo.count, combo.x, combo.y);
+                combo.lastComboShown = combo.count;
+              }
+            }
           }
         }
 
@@ -1638,6 +1720,11 @@
         }
         // Create a growing spark cloud at (x, y) with given final radius, particle count, and duration (frames)
         function createGrowingSparkCloud(centerX, centerY, finalRadius, particleCount, durationFrames) {
+          // Accept explosionId as an optional argument (for player explosions)
+          let explosionId = null;
+          if (arguments.length >= 6) {
+            explosionId = arguments[5];
+          }
           // Track this explosion's state
           const explosion = {
             centerX,
@@ -1646,7 +1733,8 @@
             durationFrames,
             frame: 0,
             particles: [],
-            currentRadius: 0
+            currentRadius: 0,
+            explosionId: explosionId || null
           };
           for (let i = 0; i < particleCount; i++) {
             const particle = new PIXI.Graphics();
@@ -1740,7 +1828,7 @@
               const dy = rocket.y - rocket.targetY;
               if (Math.sqrt(dx * dx + dy * dy) < 8) {
                 // Create a large growing spark cloud at mouse target (200 particles, smaller, flicker)
-                createGrowingSparkCloud(rocket.targetX, rocket.targetY, 50, 200, 120); // 2 seconds at 60fps = 120 frames
+                createGrowingSparkCloud(rocket.targetX, rocket.targetY, 50, 200, 120, rocket.explosionId); // Pass explosionId for combo tracking
                 app.stage.removeChild(rocket);
                 rocket.trail.forEach(trail => app.stage.removeChild(trail));
                 rockets.splice(i, 1);
@@ -1951,7 +2039,7 @@
               const dx = rocket.x - exp.centerX;
               const dy = rocket.y - exp.centerY;
               if (Math.sqrt(dx * dx + dy * dy) < exp.currentRadius) {
-                destroyEnemyRocketByPlayer(rocket);
+                destroyEnemyRocketByPlayer(rocket, true, exp.explosionId);
                 break;
               }
             }
