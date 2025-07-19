@@ -721,6 +721,25 @@
 
         // Draw the central bunker as a military structure
         function drawBunker(centerX, bottomY) {
+          // --- SEARCHLIGHT BEAM (faint, upward, narrow at base, wider at top, NO fading, constant faintness) ---
+          // Parameters for searchlight
+          const beamBaseY = bottomY - bunkerHeight - 10; // roof top
+          const beamBaseX = centerX;
+          const beamHeight = beamBaseY;
+          const beamBaseWidth = 4;
+          const beamTopWidth = 120;
+          const beamAlpha = 0.13;
+          // Draw the beam as a single polygon (trapezoid) with constant faint alpha, no gradient, no fading
+          const searchlight = new PIXI.Graphics();
+          searchlight.beginFill(0xffffcc, beamAlpha); // constant alpha, no gradient, no fading
+          // The polygon is a trapezoid from the bunker roof to the very top, all with the same alpha
+          searchlight.moveTo(beamBaseX - beamBaseWidth / 2, beamBaseY);
+          searchlight.lineTo(beamBaseX + beamBaseWidth / 2, beamBaseY);
+          searchlight.lineTo(beamBaseX + beamTopWidth / 2, 0);
+          searchlight.lineTo(beamBaseX - beamTopWidth / 2, 0);
+          searchlight.closePath();
+          searchlight.endFill();
+          app.stage.addChild(searchlight);
           // --- TOP TRAPEZOID STRUCTURE ---
           // Smaller trapezoid dimensions
           const trapezoidWidth = bunkerWidth * 0.45;
