@@ -1447,9 +1447,27 @@ app.ticker.add(() => {
         core.x = bx;
         core.y = by;
         laserContainer.addChild(core);
-        // Remove glowingBall after it reaches the end
+        // Remove glowingBall after it reaches the end and trigger rocket explosion
         if (t >= 1) {
-          delete laser.glowingBall;
+          // Find the rocket at the laser's toX, toY (with small tolerance)
+          const tolerance = 8;
+          let targetRocketIdx = -1;
+          for (let i = 0; i < rockets.length; i++) {
+            const r = rockets[i];
+            if (!r.isPlayerRocket && Math.abs(r.x - laser.toX) < tolerance && Math.abs(r.y - laser.toY) < tolerance) {
+              targetRocketIdx = i;
+              break;
+            }
+          }
+          if (targetRocketIdx !== -1) {
+            // Explode and remove the rocket as if hit by friendly rocket
+            destroyEnemyRocketByPlayer(rockets[targetRocketIdx], false);
+          }
+          // Remove the laser from activeLasers
+          if (window.activeLasers) {
+            const idx = window.activeLasers.indexOf(laser);
+            if (idx !== -1) window.activeLasers.splice(idx, 1);
+          }
         }
       }
     }
