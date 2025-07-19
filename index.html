@@ -1371,7 +1371,7 @@ app.ticker.add(() => {
               if (window._laserWaveEndQueue.length === 0) return;
               const l = window._laserWaveEndQueue.shift();
               l.waveActiveUntil = performance.now() + 100; // will expire next frame
-              // After 2s from reverting to base form, launch glowing ball
+              // After 1s from reverting to base form, launch glowing ball
               setTimeout(() => {
                 l.glowingBall = {
                   startTime: performance.now(),
@@ -1381,10 +1381,10 @@ app.ticker.add(() => {
                   glowColor: 0xff4444,
                   glowAlpha: 0.45,
                 };
-              }, 2000);
-              setTimeout(nextWaveEnd, 3000);
+              }, 1000);
+              setTimeout(nextWaveEnd, 2000);
             }
-            setTimeout(nextWaveEnd, 3000); // Wait 3s before the first laser reverts
+            setTimeout(nextWaveEnd, 2000); // Wait 2s before the first laser reverts
           }, 400); // small delay to ensure all lasers are present
         }
         window._laserWaveEndQueue.push(laser);
