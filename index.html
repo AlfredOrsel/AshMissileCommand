@@ -38,6 +38,16 @@
       import { drawSimpleStars } from './src/NightSky/starSimple.js';
       import { drawUnifiedStar4 } from './src/NightSky/starUnified4.js';
       import { drawUnifiedStar8 } from './src/NightSky/starUnified8.js';
+
+      // Helper to rotate a point (x, y) around (cx, cy) by angle (radians)
+      function rotatePoint(x, y, cx, cy, angle) {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        return {
+          x: (x - cx) * cos - (y - cy) * sin + cx,
+          y: (x - cx) * sin + (y - cy) * cos + cy
+        };
+      }
       // Create the PixiJS application
       const app = new PIXI.Application();
       
@@ -65,36 +75,10 @@
 
         function drawBackdropCenterGlow() {
           // --- BACKDROP STARS ---
-          function drawBackdropStars() {
-            const starContainer = new PIXI.Container();
-            const starCount = 32;
-            // Find the highest background building Y (lowest y value)
-            // We'll use a conservative estimate based on cityscape params
-            const bgMaxHeight = 220;
-            const bgBaseY = app.screen.height - 120;
-            const highestBuildingY = bgBaseY - bgMaxHeight;
-            for (let i = 0; i < starCount; i++) {
-              const star = new PIXI.Graphics();
-              // Random radius: 0.7 to 2.2 px
-              const radius = 0.7 + Math.random() * 1.5;
-              // Lower brightness: 0.32 to 0.62 (was 0.55-1.0)
-              const alpha = 0.32 + Math.random() * 0.3;
-              star.beginFill(0xffffff, alpha);
-              star.drawCircle(0, 0, radius);
-              star.endFill();
-              // Random position above highest building
-              star.x = Math.random() * app.screen.width;
-              // Place in upper sky, but always above highest building
-              const minY = 0;
-              const maxY = highestBuildingY - 8;
-              star.y = minY + Math.random() * (maxY - minY);
-              starContainer.addChild(star);
-            }
-            // Add behind everything
-            app.stage.addChildAt(starContainer, 0);
-            window.backdropStars = starContainer;
-          }
-          drawBackdropStars();
+          // --- BACKDROP STARS ---
+          drawSimpleStars(app);
+          drawUnifiedStar4(app);
+          drawUnifiedStar8(app);
 
           // --- MOON OBJECT ---
           function drawMoon() {
@@ -943,42 +927,42 @@
           searchlightContainer.addChild(searchlight);
         }
 
-        function drawBackdropCenterGlow() {
-          // --- BACKDROP STARS ---
-          function drawBackdropStars() {
-            const starContainer = new PIXI.Container();
-            const starCount = 32;
-            // Find the highest background building Y (lowest y value)
-            // We'll use a conservative estimate based on cityscape params
-            const bgMaxHeight = 220;
-            const bgBaseY = app.screen.height - 120;
-            const highestBuildingY = bgBaseY - bgMaxHeight;
-            for (let i = 0; i < starCount; i++) {
-              const star = new PIXI.Graphics();
-              // Random radius: 0.7 to 2.2 px
-              const radius = 0.7 + Math.random() * 1.5;
-              // Lower brightness: 0.32 to 0.62 (was 0.55-1.0)
-              const alpha = 0.32 + Math.random() * 0.3;
-              star.beginFill(0xffffff, alpha);
-              star.drawCircle(0, 0, radius);
-              star.endFill();
-              // Random position above highest building
-              star.x = Math.random() * app.screen.width;
-              // Place in upper sky, but always above highest building
-              const minY = 0;
-              const maxY = highestBuildingY - 8;
-              star.y = minY + Math.random() * (maxY - minY);
-              starContainer.addChild(star);
-            }
-            // Add behind everything
-            app.stage.addChildAt(starContainer, 0);
-            window.backdropStars = starContainer;
-          }
-          drawBackdropStars();
-
-          // --- MOON OBJECT ---
-          drawMoon(app);
-        }
+        // function drawBackdropCenterGlow() {
+        //   // --- BACKDROP STARS ---
+        //   function drawBackdropStars() {
+        //     const starContainer = new PIXI.Container();
+        //     const starCount = 32;
+        //     // Find the highest background building Y (lowest y value)
+        //     // We'll use a conservative estimate based on cityscape params
+        //     const bgMaxHeight = 220;
+        //     const bgBaseY = app.screen.height - 120;
+        //     const highestBuildingY = bgBaseY - bgMaxHeight;
+        //     for (let i = 0; i < starCount; i++) {
+        //       const star = new PIXI.Graphics();
+        //       // Random radius: 0.7 to 2.2 px
+        //       const radius = 0.7 + Math.random() * 1.5;
+        //       // Lower brightness: 0.32 to 0.62 (was 0.55-1.0)
+        //       const alpha = 0.32 + Math.random() * 0.3;
+        //       star.beginFill(0xffffff, alpha);
+        //       star.drawCircle(0, 0, radius);
+        //       star.endFill();
+        //       // Random position above highest building
+        //       star.x = Math.random() * app.screen.width;
+        //       // Place in upper sky, but always above highest building
+        //       const minY = 0;
+        //       const maxY = highestBuildingY - 8;
+        //       star.y = minY + Math.random() * (maxY - minY);
+        //       starContainer.addChild(star);
+        //     }
+        //     // Add behind everything
+        //     app.stage.addChildAt(starContainer, 0);
+        //     window.backdropStars = starContainer;
+        //   }
+        //   drawBackdropStars();
+        //
+        //   // --- MOON OBJECT ---
+        //   drawMoon(app);
+        // }
 
         // --- ROUND SYSTEM ---
         let roundNumber = 1;
