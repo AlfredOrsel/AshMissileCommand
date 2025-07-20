@@ -2,6 +2,7 @@
 // Draws 4-spiked unified stars for the nightsky
 
 export function drawUnifiedStar4(app) {
+  console.log('drawUnifiedStar4 called');
   // 4-spiked unified star drawing logic
   function makeUnifiedStar() {
     const star = new PIXI.Container();

@@ -2,6 +2,7 @@
 // Draws simple round stars for the nightsky
 
 export function drawSimpleStars(app) {
+  console.log('drawSimpleStars called');
   // Simple round star drawing logic
   const starContainer = new PIXI.Container();
   const starCount = 32;
