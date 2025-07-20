@@ -21,6 +21,7 @@ export function createEnemyRocket(app, rockets, centerX, buildingCenters, buildi
 
 export function spawnEnemyRocket(app, rockets, buildingCenters, buildingWidth, buildingHeight, bottomY) {
   // Pick a random building
+  console.log("Spawning enemy rocket");
   const buildingIdx = Math.floor(Math.random() * buildingCenters.length);
   const buildingCenterX = buildingCenters[buildingIdx] + buildingWidth / 2;
   const buildingTopY = bottomY - buildingHeight;
