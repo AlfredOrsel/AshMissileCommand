@@ -30,7 +30,9 @@
     <div id="app"></div>
     
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.0.0/dist/pixi.min.js"></script>
-    <script>
+    <script type="module">
+      import { createEnemyRocket, spawnEnemyRocket } from './src/enemyRocket.js';
+      import { createFriendlyRocket } from './src/friendlyRocket.js';
       // Create the PixiJS application
       const app = new PIXI.Application();
       
@@ -1583,25 +1585,7 @@ app.ticker.add(() => {
           }
         });
         
-        // Create a rocket function
-        function createRocket() {
-          const rocket = new PIXI.Graphics();
-          // Draw rocket as small white circle
-          rocket.beginFill(0xFF2222); // Red for enemy rocket
-          rocket.drawCircle(0, 0, 3); // 3-pixel radius white circle
-          rocket.endFill();
-          // Position at middle top of screen
-          rocket.x = centerX;
-          rocket.y = 0;
-          // Set velocity - moving downward toward building at half speed (2.5 px/frame)
-          rocket.vx = 0;
-          rocket.vy = 1.5;
-          // Trail system
-          rocket.trail = []; // Array to store trail particles
-          rocket.maxTrailLength = 25;
-          rockets.push(rocket);
-          app.stage.addChild(rocket);
-        }
+        // Enemy rocket creation now in enemyRocket.js
         
         // Add keyboard handler to create rockets, test enemy explosion, and show combo effect
 // Removed 'K' key handler for combo test
@@ -1621,44 +1605,9 @@ let comboTextSprite = null;
             const rect = app.canvas.getBoundingClientRect();
             const mouseX = (event.clientX - rect.left) * (app.screen.width / rect.width);
             const mouseY = (event.clientY - rect.top) * (app.screen.height / rect.height);
-            // Bunker roof center
-            const bunkerTopX = centerX;
-            const bunkerTopY = bottomY - bunkerHeight - 10;
-            // Calculate velocity to aim at mouse
-            const dx = mouseX - bunkerTopX;
-            const dy = mouseY - bunkerTopY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const speed = 6;
-            const vx = dx / dist * speed;
-            const vy = dy / dist * speed;
-            // Create green rocket
-            const rocket = new PIXI.Graphics();
-            rocket.beginFill(0x00ff44);
-            rocket.drawCircle(0, 0, 3);
-            rocket.endFill();
-            rocket.x = bunkerTopX;
-            rocket.y = bunkerTopY;
-            rocket.vx = vx;
-            rocket.vy = vy;
-            rocket.trail = [];
-            rocket.maxTrailLength = 25;
-            rocket.isPlayerRocket = true;
-            rocket.targetX = mouseX;
-            rocket.targetY = mouseY;
             // Assign a unique explosionId for combo tracking
-            rocket.explosionId = nextExplosionId++;
-            rockets.push(rocket);
-            app.stage.addChild(rocket);
-            // Update rocket icon state: leftmost green turns red and start cooldown for that slot
-            for (let i = 0; i < MAX_FRIENDLY_ROCKETS; i++) {
-              if (rocketIconsState[i]) {
-                rocketIconsState[i] = false;
-                availableFriendlyRockets--;
-                drawRocketIcons();
-                startRocketCooldown(i);
-                break;
-              }
-            }
+            const explosionId = nextExplosionId++;
+            createFriendlyRocket(app, rockets, centerX, bottomY, bunkerHeight, mouseX, mouseY, explosionId, MAX_FRIENDLY_ROCKETS, rocketIconsState, availableFriendlyRockets, drawRocketIcons, startRocketCooldown);
           }
         });
 
@@ -1704,36 +1653,7 @@ let comboTextSprite = null;
           enemyRocketFrameCounter++;
           if (enemyRocketFrameCounter >= enemyRocketInterval) {
             enemyRocketFrameCounter = 0;
-            // Pick a random building
-            const buildingIdx = Math.floor(Math.random() * buildingCenters.length);
-            const buildingCenterX = buildingCenters[buildingIdx] + buildingWidth / 2;
-            const buildingTopY = bottomY - buildingHeight;
-            // Spawn rocket at random X at top
-            const rocketStartX = Math.random() * app.screen.width;
-            const rocketStartY = 0;
-            // Calculate velocity to aim at building
-            const dx = buildingCenterX - rocketStartX;
-            const dy = buildingTopY - rocketStartY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const speed = 1.5; // Slower enemy rocket speed
-            const vx = dx / dist * speed;
-            const vy = dy / dist * speed;
-            // Create rocket
-            const rocket = new PIXI.Graphics();
-            rocket.beginFill(0xFF2222); // Red for enemy rocket
-            rocket.drawCircle(0, 0, 3);
-            rocket.endFill();
-            rocket.x = rocketStartX;
-            rocket.y = rocketStartY;
-            rocket.vx = vx;
-            rocket.vy = vy;
-            rocket.trail = [];
-            rocket.maxTrailLength = 25;
-            rocket.targetBuildingIdx = buildingIdx;
-            rocket.targetX = buildingCenterX;
-            rocket.targetY = buildingTopY;
-            rockets.push(rocket);
-            app.stage.addChild(rocket);
+            spawnEnemyRocket(app, rockets, buildingCenters, buildingWidth, buildingHeight, bottomY);
           }
         });
 
