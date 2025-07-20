@@ -2,6 +2,7 @@
 // Draws the moon for the nightsky
 
 export function drawMoon(app) {
+  console.log('drawMoon called');
   // Moon drawing logic copied from original nightsky code
   const moonContainer = new PIXI.Container();
   // Position: top right, with some margin
