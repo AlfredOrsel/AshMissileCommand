@@ -31,7 +31,9 @@ export function drawUnifiedStar8(app) {
     star.addChild(core);
     // Spikes (4 main + 4 diagonal)
     const spikeLength = glowRadius * 2.45 * 2 * 0.75;
-    const spikeLengthH = spikeLength * 2.08;
+    const baseSpikeLengthH = spikeLength * 1.04; // shortened from 2.08
+    // Randomize horizontal spike length between 1x and 4x the default length
+    const spikeLengthH = baseSpikeLengthH * (1 + Math.random() * 3);
     const spikeLengthV = spikeLength * 0.54;
     const spikeWidth = Math.max(1.2, glowRadius * 0.13);
     const fadeStepsH = 18;
@@ -68,10 +70,12 @@ export function drawUnifiedStar8(app) {
         let x3 = dx * len + perp[0] * (-w / 2);
         let y3 = dy * len + perp[1] * (-w / 2);
         if (isHorizontal) {
-          x0 *= app.screen.height / app.screen.width;
-          x1 *= app.screen.height / app.screen.width;
-          x2 *= app.screen.height / app.screen.width;
-          x3 *= app.screen.height / app.screen.width;
+          // Reduce aspect ratio scaling to make horizontal spikes shorter
+          const aspectScale = 0.3; // much smaller than original (app.screen.height / app.screen.width)
+          x0 *= aspectScale;
+          x1 *= aspectScale;
+          x2 *= aspectScale;
+          x3 *= aspectScale;
         }
         if ((dy !== 0 && dx === 0) || isDiagonal) {
           y0 *= app.screen.width / app.screen.height;

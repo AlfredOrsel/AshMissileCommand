@@ -77,8 +77,9 @@
           // --- BACKDROP STARS ---
           // --- BACKDROP STARS ---
           drawSimpleStars(app);
-          drawUnifiedStar4(app);
-          drawUnifiedStar8(app);
+          // Disabled external star functions to reduce total special stars to 3-5
+          // drawUnifiedStar4(app);
+          // drawUnifiedStar8(app);
 
           // --- MOON OBJECT ---
           function drawMoon() {
@@ -142,11 +143,12 @@
             core.endFill();
             core.x = 0;
             core.y = 0;
-            star.addChild(core);
-            // Spikes (less bright)
-            const spikeLength = glowRadius * 2.45 * 2 * 0.75;
-            const spikeLengthH = spikeLength * 2.08;
-            const spikeLengthV = spikeLength * 0.54;
+            star.addChild(core);          // Spikes (less bright)
+          const spikeLength = glowRadius * 2.45 * 2 * 0.75;
+          const baseSpikeLengthH = spikeLength * 1.04; // halved from 2.08
+          // Randomize horizontal spike length between 1x and 4x the default length
+          const spikeLengthH = baseSpikeLengthH * (1 + Math.random() * 3);
+          const spikeLengthV = spikeLength * 0.54;
             const spikeWidth = Math.max(1.2, glowRadius * 0.13);
             const fadeStepsH = 18;
             const fadeStepsV = 38;
@@ -191,10 +193,12 @@
                 let x3 = dx * len + perp[0] * (-w / 2);
                 let y3 = dy * len + perp[1] * (-w / 2);
                 if (isHorizontal) {
-                  x0 *= app.screen.height / app.screen.width;
-                  x1 *= app.screen.height / app.screen.width;
-                  x2 *= app.screen.height / app.screen.width;
-                  x3 *= app.screen.height / app.screen.width;
+                  // Reduce aspect ratio scaling to make horizontal spikes shorter
+                  const aspectScale = 0.3; // much smaller than original (app.screen.height / app.screen.width)
+                  x0 *= aspectScale;
+                  x1 *= aspectScale;
+                  x2 *= aspectScale;
+                  x3 *= aspectScale;
                 }
                 if ((dy !== 0 && dx === 0) || isDiagonal) {
                   y0 *= app.screen.width / app.screen.height;
@@ -240,7 +244,7 @@
             [diag, -diag],
             [-diag, -diag],
           ];
-          const numStars = 4 + Math.floor(Math.random() * 2); // 4 or 5
+          const numStars = 3 + Math.floor(Math.random() * 3); // 3, 4, or 5
           const starObjs = [];
           // Use same highest building Y as above
           const bgMaxHeight = 220;
