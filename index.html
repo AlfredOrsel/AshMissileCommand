@@ -974,7 +974,7 @@
         let roundNumber = 1;
         let roundActive = false;
         let roundTimer = 0;
-let roundDuration = 60 * 5; // 5 seconds at 60fps
+let roundDuration = 60 * 10; // 10 seconds at 60fps
         let roundPause = true;
         let roundFinishedText = null;
         // Scoring and round stats
@@ -1152,6 +1152,8 @@ let enemyRocketInterval = 90; // frames between enemy rockets (1.5s at 60fps)
             const secondsLeft = Math.max(0, Math.ceil((roundDuration - roundTimer) / 60));
             roundTimeDiv.textContent = `Round: ${secondsLeft}s`;
             if (roundTimer >= roundDuration) {
+              // COMMENTED OUT: Complex laser freeze logic
+              /*
               // At round end, shoot red glowing lasers from antenna heads to each remaining enemy rocket, freezing them in place
               // Only enemy rockets (not player rockets) are frozen
               const unfrozenEnemyRockets = rockets.filter(r => !r.isPlayerRocket && !r.frozenByLaser);
@@ -1173,357 +1175,34 @@ let enemyRocketInterval = 90; // frames between enemy rockets (1.5s at 60fps)
               // Only process one enemy rocket per frame
               if (state.queue.length > 0) {
                 const rocket = state.queue.shift();
-                // --- Calculate antenna head (glowing dot) position using same geometry as dish drawing, but apply rotation and translation as in drawDishOnLeftPole/drawDishOnRightPole ---
-                const dishRadius = 24;
-                const dishStartAngle = Math.PI * 1.2;
-                const dishEndAngle = Math.PI * 1.8;
-                // Flat side angle and rod length
-                const flatAngle = Math.atan2(
-                  Math.sin(dishEndAngle) * dishRadius - Math.sin(dishStartAngle) * dishRadius,
-                  Math.cos(dishEndAngle) * dishRadius - Math.cos(dishStartAngle) * dishRadius
-                );
-                const rodLength = 20;
-                const mx = (Math.cos(dishStartAngle) * dishRadius + Math.cos(dishEndAngle) * dishRadius) / 2;
-                const my = (Math.sin(dishStartAngle) * dishRadius + Math.sin(dishEndAngle) * dishRadius) / 2;
-                const rodAngle = flatAngle + Math.PI / 2;
-                const rodEndX = mx + Math.cos(rodAngle) * rodLength;
-                const rodEndY = my + Math.sin(rodAngle) * rodLength;
-                // For left dish: rotate so rod points 135deg (top left)
-                const leftDesiredRodAngle = -3 * Math.PI / 4;
-                const leftDishRotation = leftDesiredRodAngle - rodAngle;
-                // For right dish: rotate so rod points -45deg (top right)
-                const rightDesiredRodAngle = -Math.PI / 4;
-                const rightDishRotation = rightDesiredRodAngle - rodAngle;
-                // Dish base positions (top of left/right bunker pole)
-                const poleWidth = 4;
-                const poleHeight = 38;
-                const leftPoleX = centerX - bunkerWidth / 2 - 6 + poleWidth / 2;
-                const leftPoleY = bottomY - bunkerHeight - 10 - poleHeight;
-                const rightPoleX = centerX + bunkerWidth / 2 + 6 - poleWidth / 2;
-                const rightPoleY = bottomY - bunkerHeight - 10 - poleHeight;
-                // Helper to rotate a point (x, y) by angle
-                function rotatePoint(x, y, angle) {
-                  const cos = Math.cos(angle);
-                  const sin = Math.sin(angle);
-                  return {
-                    x: x * cos - y * sin,
-                    y: x * sin + y * cos
-                  };
-                }
-                // Helper to rotate a point (x, y) by angle around (0,0)
-                function rotateOnly(x, y, angle) {
-                  const cos = Math.cos(angle);
-                  const sin = Math.sin(angle);
-                  return {
-                    x: x * cos - y * sin,
-                    y: x * sin + y * cos
-                  };
-                }
-                // For left dish: match placement logic in drawDishOnLeftPole
-                const leftDishCos = Math.cos(leftDishRotation);
-                const leftDishSin = Math.sin(leftDishRotation);
-                const leftRodTipLocal = rotateOnly(rodEndX, rodEndY, leftDishRotation);
-                // Compute round side midpoint for dish placement
-                const roundMidAngle = (dishStartAngle + dishEndAngle) / 2;
-                const roundMidX = Math.cos(roundMidAngle) * dishRadius;
-                const roundMidY = Math.sin(roundMidAngle) * dishRadius;
-                const roundMidXr = roundMidX * leftDishCos - roundMidY * leftDishSin;
-                const roundMidYr = roundMidX * leftDishSin + roundMidY * leftDishCos;
-                const leftDishX = leftPoleX - roundMidXr;
-                const leftDishY = leftPoleY - roundMidYr;
-                const leftAntennaX = leftDishX + leftRodTipLocal.x;
-                const leftAntennaY = leftDishY + leftRodTipLocal.y;
-
-                // For right dish: match placement logic in drawDishOnRightPole
-                const rightDishCos = Math.cos(rightDishRotation);
-                const rightDishSin = Math.sin(rightDishRotation);
-                const rightRodTipLocal = rotateOnly(rodEndX, rodEndY, rightDishRotation);
-                const roundMidXrR = roundMidX * rightDishCos - roundMidY * rightDishSin;
-                const roundMidYrR = roundMidX * rightDishSin + roundMidY * rightDishCos;
-                const rightDishX = rightPoleX - roundMidXrR;
-                const rightDishY = rightPoleY - roundMidYrR;
-                const rightAntennaX = rightDishX + rightRodTipLocal.x;
-                const rightAntennaY = rightDishY + rightRodTipLocal.y;
-
-                // Use the correct antenna for this laser
-                let fromX, fromY;
-                if (state.antennaToggle === 0) {
-                  fromX = leftAntennaX;
-                  fromY = leftAntennaY;
-                } else {
-                  fromX = rightAntennaX;
-                  fromY = rightAntennaY;
-                }
-                state.antennaToggle = 1 - state.antennaToggle;
-                // Draw glowing red laser
-                // Instead of drawing the laser here, store its info for animation
-                if (!window.activeLasers) window.activeLasers = [];
-                window.activeLasers.push({
-                  fromX,
-                  fromY,
-                  toX: rocket.x,
-                  toY: rocket.y,
-                  color: 0xff2222,
-                  width: 7,
-                  created: performance.now(),
-                  type: 'enemyFreeze',
-                });
-                // ...existing code...
-// --- LASER ANIMATION: Draw all active lasers in main loop using a container (like searchlight) ---
-
-const laserContainer = new PIXI.Container();
-// Always add as the last child after all other stage children are created
-app.stage.addChild(laserContainer);
-laserContainer.alpha = 1.0;
-laserContainer.blendMode = 'normal';
-
-app.ticker.add(() => {
-  // Remove previous lasers
-  laserContainer.removeChildren();
-
-  // (Removed debug/test objects: red rectangle, white circle, white test laser, white rect line)
-
-  // Draw each laser as a thin solid red rectangle between its endpoints
-  if (window.activeLasers && window.activeLasers.length > 0) {
-    for (const laser of window.activeLasers) {
-      // Calculate angle and length
-      const dx = laser.toX - laser.fromX;
-      const dy = laser.toY - laser.fromY;
-      const length = Math.sqrt(dx * dx + dy * dy);
-      const angle = Math.atan2(dy, dx);
-      const rect = new PIXI.Graphics();
-      // Draw main laser as a thin, semi-transparent red rectangle (50% transparent)
-      const thickness = 2; // much thinner
-      rect.beginFill(0xff2222, 0.5);
-      rect.drawRect(0, -thickness/2, length, thickness);
-      rect.endFill();
-      rect.x = laser.fromX;
-      rect.y = laser.fromY;
-      rect.rotation = angle;
-      laserContainer.addChild(rect);
-
-      // --- Wave effect: a less transparent red section, soft gradient, travels from antenna to rocket ---
-      // Each laser can have a 'waveActiveUntil' property. If not set or in the future, show wave. If expired, show only the base laser.
-      if (!('waveActiveUntil' in laser)) {
-        // Schedule the wave to end for this laser, one by one, separated by 1s
-        if (!window._laserWaveEndQueue) window._laserWaveEndQueue = [];
-        if (!window._laserWaveEndStarted) {
-          window._laserWaveEndStarted = true;
-          // Start the process after all lasers are created
-          setTimeout(() => {
-            function nextWaveEnd() {
-              if (window._laserWaveEndQueue.length === 0) return;
-              const l = window._laserWaveEndQueue.shift();
-              l.waveActiveUntil = performance.now() + 100; // will expire next frame
-              // After 1s from reverting to base form, launch glowing ball
-              setTimeout(() => {
-                l.glowingBall = {
-                  startTime: performance.now(),
-                  duration: 1200, // ms for ball to travel
-                  radius: 3,
-                  color: 0xff2222,
-                  glowColor: 0xff4444,
-                  glowAlpha: 0.45,
-                };
-              }, 1000);
-              setTimeout(nextWaveEnd, 2000);
-            }
-            setTimeout(nextWaveEnd, 2000); // Wait 2s before the first laser reverts
-          }, 400); // small delay to ensure all lasers are present
-        }
-        window._laserWaveEndQueue.push(laser);
-        laser.waveActiveUntil = Infinity; // will be set to expire when its turn comes
-      }
-      const now = performance.now();
-      if (laser.waveActiveUntil > now) {
-        // Show wave animation
-        const waveLength = Math.max(60, length * 0.18); // length of the wave section
-        const waveSpeed = 0.7; // pixels per ms
-        const t = ((now - (laser.created || now)) * waveSpeed) % (length + waveLength);
-        // The wave center moves from 0 to length
-        const waveCenter = Math.min(length, t);
-        // Draw the wave as a rectangle with a horizontal gradient alpha
-        // We'll use PIXI.Graphics for the wave, but simulate a gradient by drawing many thin rects
-        const waveThickness = thickness + 2; // slightly thicker than main laser
-        const waveMaxAlpha = 0.85; // less transparent (more solid) than main laser
-        const waveMinAlpha = 0.0;
-        const steps = 32;
-        for (let i = 0; i < steps; i++) {
-          // Position along the wave
-          const rel = (i + 0.5) / steps; // 0..1
-          // Map to position along the wave section
-          const x = waveCenter - waveLength / 2 + rel * waveLength;
-          if (x < 0 || x > length) continue; // Don't draw outside the laser
-          // Alpha forms a "wave": max at center, fades at ends (cosine curve)
-          const distFromCenter = Math.abs(rel - 0.5) * 2; // 0 at center, 1 at ends
-          const alpha = waveMinAlpha + (waveMaxAlpha - waveMinAlpha) * Math.pow(Math.cos(distFromCenter * Math.PI / 2), 2);
-          if (alpha < 0.01) continue;
-          const seg = new PIXI.Graphics();
-          seg.beginFill(0xff2222, alpha);
-          seg.drawRect(x - waveLength / (2 * steps), -waveThickness / 2, waveLength / steps, waveThickness);
-          seg.endFill();
-          seg.x = laser.fromX;
-          seg.y = laser.fromY;
-          seg.rotation = angle;
-          laserContainer.addChild(seg);
-        }
-      }
-      // --- Glowing ball effect: after wave is gone, if glowingBall is set, animate it ---
-      if (laser.waveActiveUntil <= now && laser.glowingBall) {
-        const ball = laser.glowingBall;
-        const t = Math.min(1, (now - ball.startTime) / ball.duration);
-        // Ball position along the laser
-        const bx = laser.fromX + dx * t;
-        const by = laser.fromY + dy * t;
-        // Flicker: alternate between fully visible and invisible (on/off)
-        const flickerPeriod = 90; // ms, about 11Hz
-        const flickerOn = Math.floor((now - ball.startTime) / flickerPeriod) % 2 === 0;
-        const flickerAlpha = flickerOn ? ball.glowAlpha * (0.7 + 0.3 * t) : 0.0;
-        const flickerScale = flickerOn ? 1.0 : 1.0;
-        // Elliptical glow: major axis along laser direction (twice as long, slightly larger glow)
-        const ellipseA = ball.radius * (1.7 + 0.7 * t) * 1.7 * 2.0 * flickerScale * 1.12; // major axis, doubled and slightly larger
-        const ellipseB = ball.radius * (1.7 + 0.7 * t) * 0.7 * flickerScale * 1.12 * 1.5; // minor axis, 1.5x wider
-        // Draw elliptical glow (flicker)
-        if (flickerAlpha > 0.01) {
-          const glow = new PIXI.Graphics();
-          glow.beginFill(ball.glowColor, flickerAlpha);
-          glow.drawEllipse(0, 0, ellipseA, ellipseB);
-          glow.endFill();
-          glow.x = bx;
-          glow.y = by;
-          glow.rotation = angle; // orient along laser
-          laserContainer.addChild(glow);
-        }
-        // Draw solid elliptical core (flicker)
-        if (flickerOn) {
-          const coreA = ball.radius * 1.1 * 2.0; // doubled major axis
-          const coreB = ball.radius * 0.7 * 1.5;
-          const core = new PIXI.Graphics();
-          core.beginFill(ball.color, 0.98);
-          core.drawEllipse(0, 0, coreA, coreB);
-          core.endFill();
-          core.x = bx;
-          core.y = by;
-          core.rotation = angle;
-          laserContainer.addChild(core);
-        }
-        // Remove glowingBall after it reaches the end and trigger rocket explosion
-        if (t >= 1) {
-          // Find the rocket at the laser's toX, toY (with small tolerance)
-          const tolerance = 8;
-          let targetRocketIdx = -1;
-          for (let i = 0; i < rockets.length; i++) {
-            const r = rockets[i];
-            if (!r.isPlayerRocket && Math.abs(r.x - laser.toX) < tolerance && Math.abs(r.y - laser.toY) < tolerance) {
-              targetRocketIdx = i;
-              break;
-            }
-          }
-          if (targetRocketIdx !== -1) {
-            // Explode and remove the rocket as if hit by friendly rocket
-            destroyEnemyRocketByPlayer(rockets[targetRocketIdx], false);
-            // Check if this was the last enemy rocket
-            const remainingEnemyRockets = rockets.filter(r => !r.isPlayerRocket);
-            if (remainingEnemyRockets.length === 0) {
-              // All enemy rockets destroyed, show end round dialog with Next round button
-              // (Removed white text dialog cleanup)
-              if (window.roundFinishedText) {
-                window.roundFinishedText.remove();
-                window.roundFinishedText = null;
+                // ... all the complex antenna calculation and laser logic ...
               }
-              // Create the dialog
-              const div = document.createElement('div');
-              // Calculate points for each category
-              const pointsPerRocket = 100;
-              const pointsPerBuilding = -500;
-              const rocketsPoints = rocketsDestroyed * pointsPerRocket;
-              const buildingsPoints = buildingsDestroyed * pointsPerBuilding;
-              // Format points display
-              const rocketsPointsText = rocketsDestroyed > 0
-                ? ` <span style='color:#00b800;font-size:1.1rem;'>(+${rocketsPoints})</span>`
-                : ` <span style='color:#888;font-size:1.1rem;'>(0 points)</span>`;
-              const buildingsPointsText = buildingsDestroyed > 0
-                ? ` <span style='color:#ff2222;font-size:1.1rem;'>(${buildingsPoints})</span>`
-                : ` <span style='color:#888;font-size:1.1rem;'>(0 points)</span>`;
-              // Total round score change
-              const roundScoreChange = rocketsPoints + buildingsPoints;
-              let scoreText = '';
-              if (roundScoreChange > 0) {
-                scoreText = `<span style='color:#00b800;font-size:1.1rem;'>Total: (+${roundScoreChange} points)</span>`;
-              } else if (roundScoreChange < 0) {
-                scoreText = `<span style='color:#ff2222;font-size:1.1rem;'>Total: (${roundScoreChange} points)</span>`;
-              } else {
-                scoreText = `<span style='color:#888;font-size:1.1rem;'>Total: (0 points)</span>`;
+              */
+              
+              // SIMPLIFIED: Destroy all remaining enemy rockets AS IF hit by friendly rockets (counts toward score)
+              const remainingEnemyRockets = rockets.filter(r => !r.isPlayerRocket);
+              for (const rocket of remainingEnemyRockets) {
+                // Use the existing destroyEnemyRocketByPlayer function to get proper scoring and effects
+                destroyEnemyRocketByPlayer(rocket, false);
               }
-              div.innerHTML = `Round ${roundNumber} finished<br><span style="font-size:1.3rem;">Missiles destroyed: ${rocketsDestroyed}${rocketsPointsText}<br>Buildings destroyed: ${buildingsDestroyed}${buildingsPointsText}</span><br>${scoreText}<br><button id='nextRoundBtn' style='margin-top:18px;padding:14px 38px;font-size:1.5rem;font-weight:bold;background:linear-gradient(90deg,#00ccff 0%,#ff00cc 100%);color:#fff;border:4px solid #fff;border-radius:14px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.18);'>Done</button>`;
-              div.style.position = 'fixed';
-              div.style.top = '50%';
-              div.style.left = '50%';
-              div.style.transform = 'translate(-50%, -50%)';
-              div.style.zIndex = '2000';
-              div.style.padding = '32px 80px';
-              div.style.background = 'linear-gradient(90deg, #ffef00 0%, #ff00cc 100%)';
-              div.style.color = '#222';
-              div.style.border = '6px solid #fff';
-              div.style.borderRadius = '22px';
-              div.style.fontSize = '2.5rem';
-              div.style.fontWeight = 'bold';
-              div.style.boxShadow = '0 8px 32px rgba(0,0,0,0.28)';
-              div.style.userSelect = 'none';
-              div.style.letterSpacing = '0.04em';
-              div.style.textAlign = 'center';
-              div.style.display = 'block';
-              document.body.appendChild(div);
-              window.roundFinishedText = div;
-              // Add handler for Next round button
-              const nextBtn = div.querySelector('#nextRoundBtn');
-              if (nextBtn) {
-                nextBtn.addEventListener('click', () => {
-                  div.remove();
-                  window.roundFinishedText = null;
-                  // Start next round
-                  roundNumber++;
-                  startRoundBtn.textContent = `Start round ${roundNumber}`;
-                  startRoundBtn.style.display = 'block';
-                });
-              }
-              // Pause round logic until next round is started
+              
+              // End round logic
               roundActive = false;
               roundPause = true;
-            }
-          }
-          // Remove the laser from activeLasers
-          if (window.activeLasers) {
-            const idx = window.activeLasers.indexOf(laser);
-            if (idx !== -1) window.activeLasers.splice(idx, 1);
-          }
-        }
-      }
-    }
-    // ...existing code...
-  }
-
-  // Log stage and container children counts for debug
-  // ...existing code...
-
-  // Ensure laserContainer is always the topmost child
-  if (app.stage.children[app.stage.children.length - 1] !== laserContainer) {
-    app.stage.addChild(laserContainer);
-  }
-  laserContainer.zIndex = 9999;
-  if (!app.stage.sortableChildren) app.stage.sortableChildren = true;
-});
-                // Freeze enemy rocket in place
-                rocket.vx = 0;
-                rocket.vy = 0;
-                rocket.frozenByLaser = true;
-                // Do NOT remove the laser after a short delay; keep it drawn during the freeze phase
-              }
-              // Continue processing next enemy rocket on next frame
-              requestAnimationFrame(() => {
-                roundTimer = roundDuration; // keep round in this state
-              });
-              return;
+              
+              // Show round finished text and calculate score
+              const pointsPerRocket = 100;
+              const pointsPerBuilding = -200;
+              const rocketsPoints = rocketsDestroyed * pointsPerRocket;
+              const buildingsPoints = buildingsDestroyed * pointsPerBuilding;
+              playerScore += rocketsPoints + buildingsPoints;
+              scoreDiv.textContent = `Score: ${playerScore}`;
+              showRoundFinishedText(roundNumber);
+              
+              // Prepare for next round
+              roundNumber++;
+              startRoundBtn.textContent = `Start round ${roundNumber}`;
+              startRoundBtn.style.display = 'block';
             }
           } else {
             // Hide timer if not in round
@@ -1532,6 +1211,35 @@ app.ticker.add(() => {
           // Pause all game logic if not in round (except searchlight toggle)
           if (!roundActive) return;
         });
+
+        // COMMENTED OUT: Laser animation container and logic
+        /*
+        // --- LASER ANIMATION: Draw all active lasers in main loop using a container (like searchlight) ---
+        const laserContainer = new PIXI.Container();
+        // Always add as the last child after all other stage children are created
+        app.stage.addChild(laserContainer);
+        laserContainer.alpha = 1.0;
+        laserContainer.blendMode = 'normal';
+
+        app.ticker.add(() => {
+          // Remove previous lasers
+          laserContainer.removeChildren();
+
+          // Draw each laser as a thin solid red rectangle between its endpoints
+          if (window.activeLasers && window.activeLasers.length > 0) {
+            for (const laser of window.activeLasers) {
+              // ... all the laser animation logic ...
+            }
+          }
+
+          // Ensure laserContainer is always the topmost child
+          if (app.stage.children[app.stage.children.length - 1] !== laserContainer) {
+            app.stage.addChild(laserContainer);
+          }
+          laserContainer.zIndex = 9999;
+          if (!app.stage.sortableChildren) app.stage.sortableChildren = true;
+        });
+        */
 
         // Separate ticker for searchlight toggle (always runs)
         app.ticker.add(() => {
