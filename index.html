@@ -871,7 +871,9 @@
         // Store state for animation (angle, etc.) and visibility
         window._searchlightState = {
           angle: 0, // straight up
-          visible: true // searchlight is on by default
+          visible: true, // searchlight is on by default
+          direction: 1, // 1 for right, -1 for left
+          speed: 0.0025 // radians per frame (half the original speed)
         };
 
         function drawSearchlight() {
@@ -1122,6 +1124,27 @@ let enemyRocketInterval = 90; // frames between enemy rockets (1.5s at 60fps)
         let searchlightFrameCounter = 0;
         let searchlightToggleInterval = 600 + Math.floor(Math.random() * 301); // 600-900 frames
         app.ticker.add(() => {
+          // --- SEARCHLIGHT ANIMATION ---
+          if (window._searchlightState.visible) {
+            const maxAngle = Math.PI * 25 / 180; // 25 degrees in radians
+            const state = window._searchlightState;
+            
+            // Update angle based on direction and speed
+            state.angle += state.direction * state.speed;
+            
+            // Check bounds and reverse direction
+            if (state.angle >= maxAngle) {
+              state.angle = maxAngle;
+              state.direction = -1; // Start moving left
+            } else if (state.angle <= -maxAngle) {
+              state.angle = -maxAngle;
+              state.direction = 1; // Start moving right
+            }
+            
+            // Redraw searchlight with new angle
+            drawSearchlight();
+          }
+
           // Round system logic
           if (roundActive) {
             roundTimer++;
