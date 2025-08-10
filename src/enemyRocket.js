@@ -1,7 +1,7 @@
 // enemyRocket.js
 // Handles creation and animation of enemy rockets
 
-export function createEnemyRocket(app, rockets, centerX, buildingCenters, buildingWidth, bottomY, buildingHeight) {
+export function createEnemyRocket(app, rockets, centerX, buildingCenters, buildingWidth, bottomY, buildingHeight, speed = 0.75) {
   const rocket = new PIXI.Graphics();
   rocket.beginFill(0xFF2222); // Red for enemy rocket
   rocket.drawCircle(0, 0, 3);
@@ -9,9 +9,9 @@ export function createEnemyRocket(app, rockets, centerX, buildingCenters, buildi
   // Position at middle top of screen
   rocket.x = centerX;
   rocket.y = 0;
-  // Set velocity - moving downward toward building at quarter speed (0.75 px/frame)
+  // Set velocity - moving downward toward building
   rocket.vx = 0;
-  rocket.vy = 0.75;
+  rocket.vy = speed;
   rocket.trail = [];
   rocket.maxTrailLength = 50; // Doubled from 25 to compensate for slower speed
   rockets.push(rocket);
@@ -19,7 +19,7 @@ export function createEnemyRocket(app, rockets, centerX, buildingCenters, buildi
   return rocket;
 }
 
-export function spawnEnemyRocket(app, rockets, buildingCenters, buildingWidth, buildingHeight, bottomY) {
+export function spawnEnemyRocket(app, rockets, buildingCenters, buildingWidth, buildingHeight, bottomY, speed = 0.75) {
   // Pick a random building
   console.log("Spawning enemy rocket");
   const buildingIdx = Math.floor(Math.random() * buildingCenters.length);
@@ -32,7 +32,6 @@ export function spawnEnemyRocket(app, rockets, buildingCenters, buildingWidth, b
   const dx = buildingCenterX - rocketStartX;
   const dy = buildingTopY - rocketStartY;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  const speed = 0.75; // Half the original speed (was 1.5)
   const vx = dx / dist * speed;
   const vy = dy / dist * speed;
   // Create rocket

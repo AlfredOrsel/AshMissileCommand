@@ -159,6 +159,13 @@
                 </div>
               </div>
               <div class="debug-section">
+                <label class="debug-label">Enemy Rocket Speed</label>
+                <div class="slider-container">
+                  <input type="range" id="enemySpeedSlider" min="0.75" max="3.0" step="0.25" value="${enemyRocketSpeed}" class="debug-slider">
+                  <span class="slider-value">${enemyRocketSpeed.toFixed(2)}</span>
+                </div>
+              </div>
+              <div class="debug-section">
                 <button id="debugStartRound" class="debug-start-btn">🚀 Start Round</button>
               </div>
             `;
@@ -289,10 +296,19 @@
             const valueDisplay = debugMenuElement.querySelector('.slider-value');
             const startBtn = document.getElementById('debugStartRound');
             
+            const enemySpeedSlider = document.getElementById('enemySpeedSlider');
+            const enemySpeedDisplay = debugMenuElement.querySelectorAll('.slider-value')[1];
+            
             slider.addEventListener('input', function(e) {
               const newValue = parseInt(e.target.value);
               roundDuration = newValue * 60; // Convert to frames (60fps)
               valueDisplay.textContent = newValue + 's';
+            });
+            
+            enemySpeedSlider.addEventListener('input', function(e) {
+              const newValue = parseFloat(e.target.value);
+              enemyRocketSpeed = newValue;
+              enemySpeedDisplay.textContent = newValue.toFixed(2);
             });
             
             startBtn.addEventListener('click', function() {
@@ -1179,6 +1195,7 @@ let roundDuration = 60 * 30; // 30 seconds at 60fps
         let buildingsDestroyed = 0;
 let enemyRocketInterval = 180; // frames between enemy rockets (3s at 60fps) - half frequency
         let enemyRocketFrameCounter = 0;
+        let enemyRocketSpeed = 0.75; // Current enemy rocket speed (0.75 to 3.0)
 
         // --- PLAYER SCORE AND ROUND TIMER UI ---
         let playerScore = 0;
@@ -1517,7 +1534,7 @@ let comboTextSprite = null;
           enemyRocketFrameCounter++;
           if (enemyRocketFrameCounter >= enemyRocketInterval) {
             enemyRocketFrameCounter = 0;
-            spawnEnemyRocket(app, rockets, buildingCenters, buildingWidth, buildingHeight, bottomY);
+            spawnEnemyRocket(app, rockets, buildingCenters, buildingWidth, buildingHeight, bottomY, enemyRocketSpeed);
           }
         });
 
