@@ -9,11 +9,11 @@ export function createEnemyRocket(app, rockets, centerX, buildingCenters, buildi
   // Position at middle top of screen
   rocket.x = centerX;
   rocket.y = 0;
-  // Set velocity - moving downward toward building at half speed (1.5 px/frame)
+  // Set velocity - moving downward toward building at quarter speed (0.75 px/frame)
   rocket.vx = 0;
-  rocket.vy = 1.5;
+  rocket.vy = 0.75;
   rocket.trail = [];
-  rocket.maxTrailLength = 25;
+  rocket.maxTrailLength = 50; // Doubled from 25 to compensate for slower speed
   rockets.push(rocket);
   app.stage.addChild(rocket);
   return rocket;
@@ -32,7 +32,7 @@ export function spawnEnemyRocket(app, rockets, buildingCenters, buildingWidth, b
   const dx = buildingCenterX - rocketStartX;
   const dy = buildingTopY - rocketStartY;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  const speed = 1.5; // Slower enemy rocket speed
+  const speed = 0.75; // Half the original speed (was 1.5)
   const vx = dx / dist * speed;
   const vy = dy / dist * speed;
   // Create rocket
@@ -45,7 +45,7 @@ export function spawnEnemyRocket(app, rockets, buildingCenters, buildingWidth, b
   rocket.vx = vx;
   rocket.vy = vy;
   rocket.trail = [];
-  rocket.maxTrailLength = 25;
+  rocket.maxTrailLength = 50; // Doubled from 25 to compensate for slower speed
   rocket.targetBuildingIdx = buildingIdx;
   rocket.targetX = buildingCenterX;
   rocket.targetY = buildingTopY;

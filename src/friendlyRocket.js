@@ -22,7 +22,7 @@ export function createFriendlyRocket(app, rockets, centerX, bottomY, bunkerHeigh
   rocket.vx = vx;
   rocket.vy = vy;
   rocket.trail = [];
-  rocket.maxTrailLength = 25;
+  rocket.maxTrailLength = 50; // Doubled from 25 for longer, more visible trails
   rocket.isPlayerRocket = true;
   rocket.targetX = mouseX;
   rocket.targetY = mouseY;
