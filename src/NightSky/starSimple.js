@@ -5,7 +5,7 @@ export function drawSimpleStars(app) {
   console.log('drawSimpleStars called');
   // Simple round star drawing logic
   const starContainer = new PIXI.Container();
-  const starCount = 32;
+  const starCount = window.starCount || 32; // Use global starCount or default to 32
   // Use a conservative estimate for highest building Y
   const bgMaxHeight = 220;
   const bgBaseY = app.screen.height - 120;

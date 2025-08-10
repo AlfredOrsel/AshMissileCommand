@@ -69,11 +69,117 @@
         // Add to window for debugging
         window.app = app;
 
+        // --- STARTUP SCREEN ---
+        let startupScreenVisible = true;
+        let titleSprite = null;
+        let playButton = null;
+        let startTime = Date.now();
 
-        // --- BACKDROP: Center Glow Ball ---
+        function showStartupScreen() {
+          // Load and display title image
+          PIXI.Assets.load('./Title.png').then((texture) => {
+            titleSprite = new PIXI.Sprite(texture);
+            
+            // Center the title image
+            titleSprite.anchor.set(0.5);
+            titleSprite.x = app.screen.width / 2;
+            titleSprite.y = app.screen.height / 2 - 50; // Slightly above center
+            
+            // Scale to fit screen nicely (max 80% of screen width)
+            const maxWidth = app.screen.width * 0.8;
+            if (titleSprite.width > maxWidth) {
+              const scale = maxWidth / titleSprite.width;
+              titleSprite.scale.set(scale);
+            }
+            
+            app.stage.addChild(titleSprite);
+          });
 
+          // Create Play Game button (HTML overlay)
+          const playButtonElement = document.createElement('button');
+          playButtonElement.innerHTML = '🚀 PLAY GAME';
+          playButtonElement.style.cssText = `
+            position: fixed;
+            left: 50%;
+            top: 65%;
+            transform: translateX(-50%);
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2a2a3e 100%);
+            border: 3px solid #00ccff;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 204, 255, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-family: monospace, 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 4000;
+            user-select: none;
+            transition: all 0.3s ease;
+          `;
+          
+          playButtonElement.addEventListener('click', startGame);
+          playButtonElement.addEventListener('mouseenter', () => {
+            playButtonElement.style.transform = 'translateX(-50%) scale(1.05)';
+            playButtonElement.style.boxShadow = '0 12px 40px rgba(0, 204, 255, 0.8), inset 0 2px 4px rgba(255, 255, 255, 0.1)';
+          });
+          playButtonElement.addEventListener('mouseleave', () => {
+            playButtonElement.style.transform = 'translateX(-50%) scale(1.0)';
+            playButtonElement.style.boxShadow = '0 8px 32px rgba(0, 204, 255, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.1)';
+          });
+          
+          document.body.appendChild(playButtonElement);
+          playButton = playButtonElement;
 
-        function drawBackdropCenterGlow() {
+          // Start pulsating animation
+          app.ticker.add(updateStartupScreen);
+        }
+
+        function updateStartupScreen() {
+          if (!startupScreenVisible || !playButton) return;
+          
+          const time = Date.now() - startTime;
+          const pulse = 1.0 + 0.03 * Math.sin(time * 0.003); // Subtle 98% to 102% scale
+          const glow = 0.6 + 0.2 * Math.sin(time * 0.003); // Glow intensity 60% to 80%
+          
+          playButton.style.transform = `translateX(-50%) scale(${pulse})`;
+          playButton.style.boxShadow = `0 8px 32px rgba(0, 204, 255, ${glow}), inset 0 2px 4px rgba(255, 255, 255, 0.1)`;
+        }
+
+        function startGame() {
+          startupScreenVisible = false;
+          
+          // Remove startup elements
+          if (titleSprite) {
+            app.stage.removeChild(titleSprite);
+            titleSprite = null;
+          }
+          if (playButton) {
+            document.body.removeChild(playButton);
+            playButton = null;
+          }
+          
+          // Remove the startup ticker
+          app.ticker.remove(updateStartupScreen);
+          
+          // Start the actual game
+          initializeGame();
+        }
+
+        function initializeGame() {
+          // Hide startup screen
+          startupScreenVisible = false;
+          if (titleSprite) {
+            app.stage.removeChild(titleSprite);
+          }
+          if (playButton) {
+            playButton.remove();
+          }
+          
+          // All the existing game initialization code goes here
+          drawBackdropCenterGlow();
+          
+          function drawBackdropCenterGlow() {
           // --- BACKDROP STARS ---
           // --- BACKDROP STARS ---
           drawSimpleStars(app);
@@ -193,7 +299,7 @@
                 <div class="debug-section">
                   <label class="debug-label">Star Count</label>
                   <div class="slider-container">
-                    <input type="range" id="starCountSlider" min="16" max="64" step="4" value="${starCount}" class="debug-slider">
+                    <input type="range" id="starCountSlider" min="10" max="200" step="10" value="${starCount}" class="debug-slider">
                     <span class="slider-value">${starCount}</span>
                   </div>
                 </div>
@@ -432,7 +538,17 @@
             starCountSlider.addEventListener('input', function(e) {
               const newValue = parseInt(e.target.value);
               starCount = newValue;
+              window.starCount = newValue; // Update global variable
               starCountDisplay.textContent = newValue;
+              
+              // Clear existing stars by removing the backdrop stars container
+              if (window.backdropStars) {
+                app.stage.removeChild(window.backdropStars);
+                window.backdropStars = null;
+              }
+              
+              // Redraw stars with new count
+              drawSimpleStars(app);
             });
             
             searchlightWidthSlider.addEventListener('input', function(e) {
@@ -514,9 +630,9 @@
               width: 300px;
               padding: 12px 24px;
               background: linear-gradient(135deg, #1a1a2e 0%, #2a2a3e 100%);
-              border: 3px solid #ff8800;
+              border: 3px solid #00ccff;
               border-radius: 16px;
-              box-shadow: 0 8px 32px rgba(255, 136, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+              box-shadow: 0 8px 32px rgba(0, 204, 255, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1);
               color: #ffffff;
               font-family: monospace, 'Courier New', monospace;
               font-weight: bold;
@@ -1426,6 +1542,7 @@ let roundDuration = 60 * 30; // 30 seconds at 60fps
         let enemyRocketSpeed = 0.75; // Current enemy rocket speed (0.75 to 3.0)
         let friendlyRocketSpeed = 6; // Current friendly rocket speed (3 to 12)
         let starCount = 32; // Current star count (16 to 64)
+        window.starCount = starCount; // Make it globally accessible
         let searchlightWidth = 160; // Current searchlight beam width (60 to 240)        // --- PLAYER SCORE AND ROUND TIMER UI ---
         let playerScore = 0;
         // Score display (smaller, green, closer to top)
@@ -1502,7 +1619,7 @@ let roundDuration = 60 * 30; // 30 seconds at 60fps
           console.log(`Rockets points: ${rocketsPoints}`);
           const buildingsPoints = buildingsDestroyed * pointsPerBuilding;
           const div = document.createElement('div');
-          div.innerHTML = `Round ${round} finished<br><span style="font-size:1.3rem;">Rockets destroyed1: ${rocketsDestroyed} <span style='color:#00b800;font-size:1.1rem;'>(+${rocketsPoints})</span><br>Buildings destroyed: ${buildingsDestroyed} <span style='color:#d00000;font-size:1.1rem;'>(${buildingsPoints})</span></span>`;
+          div.innerHTML = `Round ${round} finished<br><span style="font-size:1.3rem;">Rockets destroyed: ${rocketsDestroyed} <span style='color:#00b800;font-size:1.1rem;'>(+${rocketsPoints})</span><br>Buildings destroyed: ${buildingsDestroyed} <span style='color:#d00000;font-size:1.1rem;'>(${buildingsPoints})</span></span>`;
           div.style.position = 'fixed';
           div.style.top = '50%';
           div.style.left = '50%';
@@ -2508,6 +2625,10 @@ function createGreyDudExplosion(x, y) {
           }
         });
 
+        } // End of initializeGame function
+
+        // Show startup screen first
+        showStartupScreen();
 
       });
     </script>
