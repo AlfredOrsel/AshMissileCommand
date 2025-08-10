@@ -306,7 +306,7 @@
                 <div class="debug-section">
                   <label class="debug-label">Searchlight Width</label>
                   <div class="slider-container">
-                    <input type="range" id="searchlightWidthSlider" min="60" max="240" step="20" value="${searchlightWidth}" class="debug-slider">
+                    <input type="range" id="searchlightWidthSlider" min="60" max="600" step="20" value="${searchlightWidth}" class="debug-slider">
                     <span class="slider-value">${searchlightWidth}</span>
                   </div>
                 </div>
@@ -1543,7 +1543,7 @@ let roundDuration = 60 * 30; // 30 seconds at 60fps
         let friendlyRocketSpeed = 6; // Current friendly rocket speed (3 to 12)
         let starCount = 32; // Current star count (16 to 64)
         window.starCount = starCount; // Make it globally accessible
-        let searchlightWidth = 160; // Current searchlight beam width (60 to 240)        // --- PLAYER SCORE AND ROUND TIMER UI ---
+        let searchlightWidth = 160; // Current searchlight beam width (60 to 600)        // --- PLAYER SCORE AND ROUND TIMER UI ---
         let playerScore = 0;
         // Score display (smaller, green, closer to top)
         const scoreDiv = document.createElement('div');
