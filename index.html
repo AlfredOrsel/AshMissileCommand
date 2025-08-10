@@ -413,6 +413,12 @@
             const searchlightWidthSlider = document.getElementById('searchlightWidthSlider');
             const searchlightWidthDisplay = debugMenuElement.querySelectorAll('.slider-value')[5];
             
+            const friendlyExplosionParticlesSlider = document.getElementById('friendlyExplosionParticlesSlider');
+            const friendlyExplosionParticlesDisplay = debugMenuElement.querySelectorAll('.slider-value')[6];
+            
+            const enemyExplosionParticlesSlider = document.getElementById('enemyExplosionParticlesSlider');
+            const enemyExplosionParticlesDisplay = debugMenuElement.querySelectorAll('.slider-value')[7];
+            
             slider.addEventListener('input', function(e) {
               const newValue = parseInt(e.target.value);
               roundDuration = newValue * 60; // Convert to frames (60fps)
@@ -450,6 +456,18 @@
               const newValue = parseInt(e.target.value);
               searchlightWidth = newValue;
               searchlightWidthDisplay.textContent = newValue;
+            });
+            
+            friendlyExplosionParticlesSlider.addEventListener('input', function(e) {
+              const newValue = parseInt(e.target.value);
+              // Functionality will be added later
+              friendlyExplosionParticlesDisplay.textContent = newValue;
+            });
+            
+            enemyExplosionParticlesSlider.addEventListener('input', function(e) {
+              const newValue = parseInt(e.target.value);
+              // Functionality will be added later
+              enemyExplosionParticlesDisplay.textContent = newValue;
             });
             
             startBtn.addEventListener('click', function() {
