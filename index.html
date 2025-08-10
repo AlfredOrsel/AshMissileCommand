@@ -365,7 +365,7 @@
               const pieceY = bottomY - buildingHeight + row * pieceHeight;
               piece.x = pieceX;
               piece.y = pieceY;
-              piece.beginFill(0x1a1a2e);
+              piece.beginFill(0x2a2a3e); // Slightly lighter building color
               piece.drawRect(0, 0, pieceWidth, pieceHeight);
               piece.endFill();
               piece.lineStyle(1, 0x00ffff);
@@ -386,8 +386,8 @@
               if ((row === 0 && (col === 1 || col === 2)) ||
                 (row === 1 && (col === 1 || col === 2)) ||
                 (row === 2 && (col === 1 || col === 2))) {
-                // Randomly determine if light is on or off (50% chance each)
-                const lightIsOn = Math.random() < 0.5;
+                // 80% chance lights are on, 20% chance lights are off
+                const lightIsOn = Math.random() < 0.8;
                 const windowMargin = 2;
                 
                 if (lightIsOn) {
@@ -785,20 +785,6 @@
           topTrapezoid.endFill();
           app.stage.addChild(topTrapezoid);
 
-          // Two red windows, vertically centered in the trapezoid
-          const windowWidth = trapezoidWidth * 0.18;
-          const windowHeight = 8;
-          const windowY = trapezoidTopY + (trapezoidHeight - windowHeight) / 2;
-          const windowSpacing = trapezoidWidth * 0.32;
-          for (let i = 0; i < 2; i++) {
-            const wx = centerX - windowSpacing / 2 + i * windowSpacing;
-            const window = new PIXI.Graphics();
-            window.beginFill(0xff2222);
-            window.lineStyle(2, 0xff4444, 0.7);
-            window.drawRoundedRect(wx - windowWidth / 2, windowY, windowWidth, windowHeight, 3);
-            window.endFill();
-            app.stage.addChild(window);
-          }
           const bunker = new PIXI.Graphics();
           // Main body: thick, angular, concrete look
           bunker.beginFill(0x33363a);
