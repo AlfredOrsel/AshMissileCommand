@@ -151,27 +151,30 @@
             debugMenuElement.id = 'debugMenu';
             debugMenuElement.innerHTML = `
               <div class="debug-title">⚙️ DEBUG MENU</div>
-              <div class="debug-section">
-                <label class="debug-label">Round Duration</label>
-                <div class="slider-container">
-                  <input type="range" id="roundDurationSlider" min="10" max="60" step="5" value="${Math.round(roundDuration / 60)}" class="debug-slider">
-                  <span class="slider-value">${Math.round(roundDuration / 60)}s</span>
+              <fieldset class="debug-group">
+                <legend class="group-legend">Gameplay</legend>
+                <div class="debug-section">
+                  <label class="debug-label">Round Duration</label>
+                  <div class="slider-container">
+                    <input type="range" id="roundDurationSlider" min="10" max="60" step="5" value="${Math.round(roundDuration / 60)}" class="debug-slider">
+                    <span class="slider-value">${Math.round(roundDuration / 60)}s</span>
+                  </div>
                 </div>
-              </div>
-              <div class="debug-section">
-                <label class="debug-label">Enemy Rocket Speed</label>
-                <div class="slider-container">
-                  <input type="range" id="enemySpeedSlider" min="0.75" max="3.0" step="0.25" value="${enemyRocketSpeed}" class="debug-slider">
-                  <span class="slider-value">${enemyRocketSpeed.toFixed(2)}</span>
+                <div class="debug-section">
+                  <label class="debug-label">Enemy Rocket Speed</label>
+                  <div class="slider-container">
+                    <input type="range" id="enemySpeedSlider" min="0.75" max="3.0" step="0.25" value="${enemyRocketSpeed}" class="debug-slider">
+                    <span class="slider-value">${enemyRocketSpeed.toFixed(2)}</span>
+                  </div>
                 </div>
-              </div>
-              <div class="debug-section">
-                <label class="debug-label">Friendly Rocket Speed</label>
-                <div class="slider-container">
-                  <input type="range" id="friendlySpeedSlider" min="3" max="12" step="1" value="${friendlyRocketSpeed}" class="debug-slider">
-                  <span class="slider-value">${friendlyRocketSpeed}</span>
+                <div class="debug-section">
+                  <label class="debug-label">Friendly Rocket Speed</label>
+                  <div class="slider-container">
+                    <input type="range" id="friendlySpeedSlider" min="3" max="12" step="1" value="${friendlyRocketSpeed}" class="debug-slider">
+                    <span class="slider-value">${friendlyRocketSpeed}</span>
+                  </div>
                 </div>
-              </div>
+              </fieldset>
               <div class="debug-section">
                 <button id="debugStartRound" class="debug-start-btn">🚀 Start Round</button>
               </div>
@@ -325,6 +328,25 @@
               .debug-stop-btn:active {
                 transform: translateY(0px);
                 box-shadow: 0 2px 8px rgba(255, 68, 68, 0.4);
+              }
+              
+              .debug-group {
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                border-radius: 8px;
+                padding: 16px 12px 12px 12px;
+                margin: 12px 0;
+                background: rgba(255, 255, 255, 0.05);
+              }
+              
+              .group-legend {
+                color: #00ccff;
+                font-weight: bold;
+                font-size: 0.9rem;
+                padding: 0 8px;
+                background: linear-gradient(135deg, #1a1a2e 0%, #2a2a3e 100%);
+                border: 1px solid rgba(0, 204, 255, 0.5);
+                border-radius: 4px;
+                text-shadow: 0 0 4px rgba(0, 204, 255, 0.6);
               }
             `;
             document.head.appendChild(style);
