@@ -131,8 +131,10 @@
           function toggleDebugMenu() {
             if (debugMenuVisible) {
               hideDebugMenu();
+              hidePerformanceMenu();
             } else {
               showDebugMenu();
+              showPerformanceMenu();
             }
           }
 
@@ -150,7 +152,7 @@
             debugMenuElement = document.createElement('div');
             debugMenuElement.id = 'debugMenu';
             debugMenuElement.innerHTML = `
-              <div class="debug-title">⚙️ DEBUG MENU</div>
+              <div class="debug-title">⚙️ SETTINGS</div>
               <fieldset class="debug-group">
                 <legend class="group-legend">Gameplay</legend>
                 <div class="debug-section">
@@ -196,23 +198,6 @@
                   <div class="slider-container">
                     <input type="range" id="searchlightWidthSlider" min="60" max="240" step="20" value="${searchlightWidth}" class="debug-slider">
                     <span class="slider-value">${searchlightWidth}</span>
-                  </div>
-                </div>
-              </fieldset>
-              <fieldset class="debug-group">
-                <legend class="group-legend">Performance</legend>
-                <div class="debug-section">
-                  <label class="debug-label">Friendly Rocket Explosion Particles</label>
-                  <div class="slider-container">
-                    <input type="range" id="friendlyExplosionParticlesSlider" min="200" max="400" step="20" value="400" class="debug-slider">
-                    <span class="slider-value">400</span>
-                  </div>
-                </div>
-                <div class="debug-section">
-                  <label class="debug-label">Enemy Rocket Explosion Particles</label>
-                  <div class="slider-container">
-                    <input type="range" id="enemyExplosionParticlesSlider" min="200" max="600" step="20" value="440" class="debug-slider">
-                    <span class="slider-value">440</span>
                   </div>
                 </div>
               </fieldset>
@@ -413,12 +398,6 @@
             const searchlightWidthSlider = document.getElementById('searchlightWidthSlider');
             const searchlightWidthDisplay = debugMenuElement.querySelectorAll('.slider-value')[5];
             
-            const friendlyExplosionParticlesSlider = document.getElementById('friendlyExplosionParticlesSlider');
-            const friendlyExplosionParticlesDisplay = debugMenuElement.querySelectorAll('.slider-value')[6];
-            
-            const enemyExplosionParticlesSlider = document.getElementById('enemyExplosionParticlesSlider');
-            const enemyExplosionParticlesDisplay = debugMenuElement.querySelectorAll('.slider-value')[7];
-            
             slider.addEventListener('input', function(e) {
               const newValue = parseInt(e.target.value);
               roundDuration = newValue * 60; // Convert to frames (60fps)
@@ -458,18 +437,6 @@
               searchlightWidthDisplay.textContent = newValue;
             });
             
-            friendlyExplosionParticlesSlider.addEventListener('input', function(e) {
-              const newValue = parseInt(e.target.value);
-              // Functionality will be added later
-              friendlyExplosionParticlesDisplay.textContent = newValue;
-            });
-            
-            enemyExplosionParticlesSlider.addEventListener('input', function(e) {
-              const newValue = parseInt(e.target.value);
-              // Functionality will be added later
-              enemyExplosionParticlesDisplay.textContent = newValue;
-            });
-            
             startBtn.addEventListener('click', function() {
               // Hide debug menu when starting round
               hideDebugMenu();
@@ -493,6 +460,95 @@
               debugMenuElement = null;
             }
             debugMenuVisible = false;
+          }
+
+          // Performance Menu Functions
+          let performanceMenuElement = null;
+          let performanceMenuVisible = false;
+
+          function showPerformanceMenu() {
+            if (performanceMenuElement) {
+              performanceMenuElement.remove();
+            }
+            
+            // Get moon position
+            const moonPos = window.moon;
+            const moonScreenX = moonPos.x;
+            const moonScreenY = moonPos.y;
+            
+            // Create performance menu container
+            performanceMenuElement = document.createElement('div');
+            performanceMenuElement.id = 'performanceMenu';
+            performanceMenuElement.innerHTML = `
+              <div class="debug-title">⚡ PERFORMANCE</div>
+              <fieldset class="debug-group">
+                <legend class="group-legend">Explosion Particles</legend>
+                <div class="debug-section">
+                  <label class="debug-label">Friendly Rocket Explosion Particles</label>
+                  <div class="slider-container">
+                    <input type="range" id="friendlyExplosionParticlesSlider" min="200" max="400" step="20" value="400" class="debug-slider">
+                    <span class="slider-value">400</span>
+                  </div>
+                </div>
+                <div class="debug-section">
+                  <label class="debug-label">Enemy Rocket Explosion Particles</label>
+                  <div class="slider-container">
+                    <input type="range" id="enemyExplosionParticlesSlider" min="200" max="600" step="20" value="440" class="debug-slider">
+                    <span class="slider-value">440</span>
+                  </div>
+                </div>
+              </fieldset>
+            `;
+            
+            // Style the performance menu (positioned to the left of debug menu)
+            performanceMenuElement.style.cssText = `
+              position: fixed;
+              left: ${moonScreenX - 610}px;
+              top: ${moonScreenY + 50}px;
+              width: 300px;
+              padding: 12px 24px;
+              background: linear-gradient(135deg, #1a1a2e 0%, #2a2a3e 100%);
+              border: 3px solid #ff8800;
+              border-radius: 16px;
+              box-shadow: 0 8px 32px rgba(255, 136, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+              color: #ffffff;
+              font-family: monospace, 'Courier New', monospace;
+              font-weight: bold;
+              z-index: 3000;
+              backdrop-filter: blur(8px);
+              user-select: none;
+            `;
+            
+            document.body.appendChild(performanceMenuElement);
+            
+            // Add slider references and event listeners
+            const friendlyExplosionParticlesSlider = document.getElementById('friendlyExplosionParticlesSlider');
+            const friendlyExplosionParticlesDisplay = performanceMenuElement.querySelectorAll('.slider-value')[0];
+            
+            const enemyExplosionParticlesSlider = document.getElementById('enemyExplosionParticlesSlider');
+            const enemyExplosionParticlesDisplay = performanceMenuElement.querySelectorAll('.slider-value')[1];
+            
+            friendlyExplosionParticlesSlider.addEventListener('input', function(e) {
+              const newValue = parseInt(e.target.value);
+              // Functionality will be added later
+              friendlyExplosionParticlesDisplay.textContent = newValue;
+            });
+            
+            enemyExplosionParticlesSlider.addEventListener('input', function(e) {
+              const newValue = parseInt(e.target.value);
+              // Functionality will be added later
+              enemyExplosionParticlesDisplay.textContent = newValue;
+            });
+            
+            performanceMenuVisible = true;
+          }
+
+          function hidePerformanceMenu() {
+            if (performanceMenuElement) {
+              performanceMenuElement.remove();
+              performanceMenuElement = null;
+            }
+            performanceMenuVisible = false;
           }
 
           // --- Unified Star Object (core, glow, spikes, ring) ---
