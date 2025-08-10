@@ -369,12 +369,19 @@
               piece.drawRect(0, 0, pieceWidth, pieceHeight);
               piece.endFill();
               piece.lineStyle(1, 0x00ffff);
+              // Draw exterior borders
               if (col === 0) { piece.moveTo(0, 0); piece.lineTo(0, pieceHeight); }
               if (col === 3) { piece.moveTo(pieceWidth, 0); piece.lineTo(pieceWidth, pieceHeight); }
               if (row === 0) { piece.moveTo(0, 0); piece.lineTo(pieceWidth, 0); }
               if (row === 3) { piece.moveTo(0, pieceHeight); piece.lineTo(pieceWidth, pieceHeight); }
-              if (row === 1 || row === 2) { piece.moveTo(0, pieceHeight); piece.lineTo(pieceWidth, pieceHeight); }
-              if (col === 1 || col === 2) { piece.moveTo(pieceWidth, 0); piece.lineTo(pieceWidth, pieceHeight); }
+              // Draw horizontal lines between rows, but skip window areas
+              if (row === 1 || row === 2) { 
+                // Only draw horizontal lines outside window columns (1 and 2)
+                if (col === 0 || col === 3) {
+                  piece.moveTo(0, pieceHeight); piece.lineTo(pieceWidth, pieceHeight); 
+                }
+              }
+              // Skip vertical lines in window columns (1 and 2) to avoid interfering with windows
               piece.lineStyle(0);
               if ((row === 0 && (col === 1 || col === 2)) ||
                 (row === 1 && (col === 1 || col === 2)) ||
@@ -974,7 +981,7 @@
         let roundNumber = 1;
         let roundActive = false;
         let roundTimer = 0;
-let roundDuration = 60 * 10; // 10 seconds at 60fps
+let roundDuration = 60 * 30; // 30 seconds at 60fps
         let roundPause = true;
         let roundFinishedText = null;
         // Scoring and round stats
