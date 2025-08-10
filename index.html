@@ -158,6 +158,9 @@
                   <span class="slider-value">${Math.round(roundDuration / 60)}s</span>
                 </div>
               </div>
+              <div class="debug-section">
+                <button id="debugStartRound" class="debug-start-btn">🚀 Start Round</button>
+              </div>
             `;
             
             // Style the debug menu
@@ -250,17 +253,53 @@
                 text-shadow: 0 0 4px rgba(0, 255, 136, 0.6);
                 font-weight: bold;
               }
+              
+              .debug-start-btn {
+                width: 100%;
+                padding: 12px 20px;
+                background: linear-gradient(90deg, #00ccff 0%, #ff00cc 100%);
+                color: #ffffff;
+                border: 2px solid #ffffff;
+                border-radius: 12px;
+                font-size: 1.1rem;
+                font-weight: bold;
+                font-family: monospace;
+                cursor: pointer;
+                margin-top: 8px;
+                box-shadow: 0 4px 16px rgba(0, 204, 255, 0.4);
+                transition: all 0.2s ease;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+              }
+              
+              .debug-start-btn:hover {
+                background: linear-gradient(90deg, #ff00cc 0%, #00ccff 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px rgba(0, 204, 255, 0.6);
+              }
+              
+              .debug-start-btn:active {
+                transform: translateY(0px);
+                box-shadow: 0 2px 8px rgba(0, 204, 255, 0.4);
+              }
             `;
             document.head.appendChild(style);
             
-            // Add slider event listener
+            // Add slider and button event listeners
             const slider = document.getElementById('roundDurationSlider');
             const valueDisplay = debugMenuElement.querySelector('.slider-value');
+            const startBtn = document.getElementById('debugStartRound');
             
             slider.addEventListener('input', function(e) {
               const newValue = parseInt(e.target.value);
-              roundDuration = newValue * 60; // Convert to frames
+              roundDuration = newValue * 60; // Convert to frames (60fps)
               valueDisplay.textContent = newValue + 's';
+            });
+            
+            startBtn.addEventListener('click', function() {
+              // Hide debug menu when starting round
+              hideDebugMenu();
+              // Call the existing startRound function
+              startRound();
             });
             
             debugMenuVisible = true;
