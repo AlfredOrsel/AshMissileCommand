@@ -97,21 +97,21 @@
 
           // Create Play Game button (HTML overlay)
           const playButtonElement = document.createElement('button');
-          playButtonElement.innerHTML = '🚀 PLAY GAME';
+          playButtonElement.innerHTML = 'PLAY GAME';
           playButtonElement.style.cssText = `
             position: fixed;
             left: 50%;
             top: 65%;
             transform: translateX(-50%);
-            padding: 16px 32px;
+            padding: 24px 48px;
             background: linear-gradient(135deg, #1a1a2e 0%, #2a2a3e 100%);
-            border: 3px solid #00ccff;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 204, 255, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.1);
-            color: #ffffff;
+            border: 4px solid #00ff88;
+            border-radius: 20px;
+            box-shadow: 0 12px 48px rgba(0, 255, 136, 0.8), inset 0 3px 6px rgba(255, 255, 255, 0.15);
+            color: #00ff88;
             font-family: monospace, 'Courier New', monospace;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 32px;
             cursor: pointer;
             z-index: 4000;
             user-select: none;
@@ -120,12 +120,12 @@
           
           playButtonElement.addEventListener('click', startGame);
           playButtonElement.addEventListener('mouseenter', () => {
-            playButtonElement.style.transform = 'translateX(-50%) scale(1.05)';
-            playButtonElement.style.boxShadow = '0 12px 40px rgba(0, 204, 255, 0.8), inset 0 2px 4px rgba(255, 255, 255, 0.1)';
+            playButtonElement.style.transform = 'translateX(-50%) scale(1.1)';
+            playButtonElement.style.boxShadow = '0 16px 56px rgba(0, 255, 136, 1.0), inset 0 3px 6px rgba(255, 255, 255, 0.2)';
           });
           playButtonElement.addEventListener('mouseleave', () => {
             playButtonElement.style.transform = 'translateX(-50%) scale(1.0)';
-            playButtonElement.style.boxShadow = '0 8px 32px rgba(0, 204, 255, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.1)';
+            playButtonElement.style.boxShadow = '0 12px 48px rgba(0, 255, 136, 0.8), inset 0 3px 6px rgba(255, 255, 255, 0.15)';
           });
           
           document.body.appendChild(playButtonElement);
@@ -139,11 +139,11 @@
           if (!startupScreenVisible || !playButton) return;
           
           const time = Date.now() - startTime;
-          const pulse = 1.0 + 0.03 * Math.sin(time * 0.003); // Subtle 98% to 102% scale
-          const glow = 0.6 + 0.2 * Math.sin(time * 0.003); // Glow intensity 60% to 80%
+          const pulse = 1.0 + 0.12 * Math.sin(time * 0.005); // More intense 88% to 112% scale
+          const glow = 0.8 + 0.4 * Math.sin(time * 0.005); // Intense glow 80% to 120%
           
           playButton.style.transform = `translateX(-50%) scale(${pulse})`;
-          playButton.style.boxShadow = `0 8px 32px rgba(0, 204, 255, ${glow}), inset 0 2px 4px rgba(255, 255, 255, 0.1)`;
+          playButton.style.boxShadow = `0 12px 48px rgba(0, 255, 136, ${glow}), inset 0 3px 6px rgba(255, 255, 255, 0.15)`;
         }
 
         function startGame() {
@@ -1618,8 +1618,10 @@ let roundDuration = 60 * 30; // 30 seconds at 60fps
           const rocketsPoints = rocketsDestroyed * pointsPerRocket;
           console.log(`Rockets points: ${rocketsPoints}`);
           const buildingsPoints = buildingsDestroyed * pointsPerBuilding;
+          const totalScore = rocketsPoints + buildingsPoints;
+          
           const div = document.createElement('div');
-          div.innerHTML = `Round ${round} finished<br><span style="font-size:1.3rem;">Rockets destroyed: ${rocketsDestroyed} <span style='color:#00b800;font-size:1.1rem;'>(+${rocketsPoints})</span><br>Buildings destroyed: ${buildingsDestroyed} <span style='color:#d00000;font-size:1.1rem;'>(${buildingsPoints})</span></span>`;
+          div.innerHTML = `Round ${round} finished<br><span style="font-size:1.3rem;">Rockets destroyed: ${rocketsDestroyed} <span style='color:#00b800;font-size:1.1rem;'>(+${rocketsPoints})</span><br>Buildings destroyed: ${buildingsDestroyed} <span style='color:#d00000;font-size:1.1rem;'>(${buildingsPoints})</span><br><br><span style='font-size:1.5rem;font-weight:bold;color:#222;'>Total Score: ${totalScore}</span></span><br><br><button id="nextRoundBtn" style="background: linear-gradient(135deg, #00ff88 0%, #00ccff 100%); color: #222; border: 3px solid #fff; border-radius: 12px; padding: 16px 32px; font-size: 1.8rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.3); transition: all 0.2s;">Start Round ${round + 1}</button>`;
           div.style.position = 'fixed';
           div.style.top = '50%';
           div.style.left = '50%';
@@ -1637,6 +1639,23 @@ let roundDuration = 60 * 30; // 30 seconds at 60fps
           div.style.letterSpacing = '0.04em';
           div.style.textAlign = 'center';
           div.style.display = 'block';
+          
+          // Add hover effect for the button
+          const button = div.querySelector('#nextRoundBtn');
+          if (button) {
+            button.addEventListener('mouseenter', () => {
+              button.style.transform = 'scale(1.05)';
+              button.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)';
+            });
+            button.addEventListener('mouseleave', () => {
+              button.style.transform = 'scale(1)';
+              button.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
+            });
+            button.addEventListener('click', () => {
+              startRound();
+            });
+          }
+          
           document.body.appendChild(div);
           roundFinishedText = div;
         }
