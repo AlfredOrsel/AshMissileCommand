@@ -166,6 +166,13 @@
                 </div>
               </div>
               <div class="debug-section">
+                <label class="debug-label">Friendly Rocket Speed</label>
+                <div class="slider-container">
+                  <input type="range" id="friendlySpeedSlider" min="3" max="12" step="1" value="${friendlyRocketSpeed}" class="debug-slider">
+                  <span class="slider-value">${friendlyRocketSpeed}</span>
+                </div>
+              </div>
+              <div class="debug-section">
                 <button id="debugStartRound" class="debug-start-btn">🚀 Start Round</button>
               </div>
               <div class="debug-section">
@@ -331,6 +338,9 @@
             const enemySpeedSlider = document.getElementById('enemySpeedSlider');
             const enemySpeedDisplay = debugMenuElement.querySelectorAll('.slider-value')[1];
             
+            const friendlySpeedSlider = document.getElementById('friendlySpeedSlider');
+            const friendlySpeedDisplay = debugMenuElement.querySelectorAll('.slider-value')[2];
+            
             slider.addEventListener('input', function(e) {
               const newValue = parseInt(e.target.value);
               roundDuration = newValue * 60; // Convert to frames (60fps)
@@ -341,6 +351,12 @@
               const newValue = parseFloat(e.target.value);
               enemyRocketSpeed = newValue;
               enemySpeedDisplay.textContent = newValue.toFixed(2);
+            });
+            
+            friendlySpeedSlider.addEventListener('input', function(e) {
+              const newValue = parseInt(e.target.value);
+              friendlyRocketSpeed = newValue;
+              friendlySpeedDisplay.textContent = newValue;
             });
             
             startBtn.addEventListener('click', function() {
@@ -1235,6 +1251,7 @@ let roundDuration = 60 * 30; // 30 seconds at 60fps
 let enemyRocketInterval = 180; // frames between enemy rockets (3s at 60fps) - half frequency
         let enemyRocketFrameCounter = 0;
         let enemyRocketSpeed = 0.75; // Current enemy rocket speed (0.75 to 3.0)
+        let friendlyRocketSpeed = 6; // Current friendly rocket speed (3 to 12)
 
         // --- PLAYER SCORE AND ROUND TIMER UI ---
         let playerScore = 0;
@@ -1558,7 +1575,7 @@ let comboTextSprite = null;
             const mouseY = (event.clientY - rect.top) * (app.screen.height / rect.height);
             // Assign a unique explosionId for combo tracking
             const explosionId = nextExplosionId++;
-            createFriendlyRocket(app, rockets, centerX, bottomY, bunkerHeight, mouseX, mouseY, explosionId, MAX_FRIENDLY_ROCKETS, rocketIconsState, availableFriendlyRockets, drawRocketIcons, startRocketCooldown);
+            createFriendlyRocket(app, rockets, centerX, bottomY, bunkerHeight, mouseX, mouseY, explosionId, MAX_FRIENDLY_ROCKETS, rocketIconsState, availableFriendlyRockets, drawRocketIcons, startRocketCooldown, friendlyRocketSpeed);
           }
         });
 

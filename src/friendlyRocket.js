@@ -1,7 +1,7 @@
 // friendlyRocket.js
 // Handles creation and animation of friendly (player) rockets
 
-export function createFriendlyRocket(app, rockets, centerX, bottomY, bunkerHeight, mouseX, mouseY, nextExplosionId, MAX_FRIENDLY_ROCKETS, rocketIconsState, availableFriendlyRockets, drawRocketIcons, startRocketCooldown) {
+export function createFriendlyRocket(app, rockets, centerX, bottomY, bunkerHeight, mouseX, mouseY, nextExplosionId, MAX_FRIENDLY_ROCKETS, rocketIconsState, availableFriendlyRockets, drawRocketIcons, startRocketCooldown, speed = 6) {
   // Bunker roof center
   const bunkerTopX = centerX;
   const bunkerTopY = bottomY - bunkerHeight - 10;
@@ -9,7 +9,6 @@ export function createFriendlyRocket(app, rockets, centerX, bottomY, bunkerHeigh
   const dx = mouseX - bunkerTopX;
   const dy = mouseY - bunkerTopY;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  const speed = 6;
   const vx = dx / dist * speed;
   const vy = dy / dist * speed;
   // Create green rocket
