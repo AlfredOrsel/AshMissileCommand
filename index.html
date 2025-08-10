@@ -386,12 +386,17 @@
               if ((row === 0 && (col === 1 || col === 2)) ||
                 (row === 1 && (col === 1 || col === 2)) ||
                 (row === 2 && (col === 1 || col === 2))) {
-                piece.beginFill(0xfff4cc); // Soft warm yellow - like light from inside
-                piece.alpha = 0.85;
-                const windowMargin = 2;
-                piece.drawRect(windowMargin, windowMargin, pieceWidth - windowMargin * 2, pieceHeight - windowMargin * 2);
-                piece.endFill();
-                piece.alpha = 1.0;
+                // Randomly determine if light is on or off (50% chance each)
+                const lightIsOn = Math.random() < 0.5;
+                
+                if (lightIsOn) {
+                  // Light is on - draw yellow window
+                  piece.beginFill(0xfff4cc);
+                  const windowMargin = 2;
+                  piece.drawRect(windowMargin, windowMargin, pieceWidth - windowMargin * 2, pieceHeight - windowMargin * 2);
+                  piece.endFill();
+                }
+                // If light is off, don't draw anything - let the dark building background show through
               }
               if (col === 0 && (row === 1 || row === 2)) {
                 piece.beginFill(0x00ff88);
