@@ -701,8 +701,8 @@
             star.addChild(core);          // Spikes (less bright)
           const spikeLength = glowRadius * 2.45 * 2 * 0.75;
           const baseSpikeLengthH = spikeLength * 1.04; // halved from 2.08
-          // Randomize horizontal spike length between 1x and 4x the default length
-          const spikeLengthH = baseSpikeLengthH * (1 + Math.random() * 3);
+          // Randomize horizontal spike length between 1x and 5x the default length
+          const spikeLengthH = baseSpikeLengthH * (1 + Math.random() * 4);
           const spikeLengthV = spikeLength * 0.54;
             const spikeWidth = Math.max(1.2, glowRadius * 0.13);
             const fadeStepsH = 18;
@@ -821,7 +821,7 @@
           }
           window.skyStars = starObjs;
         }
-        drawBackdropCenterGlow();
+        // REMOVED: drawBackdropCenterGlow(); - duplicate call that was doubling the stars
 
         // --- CITYSCAPE BACKGROUND (faint, composited buildings) ---
         drawCityscapeBackground(app);
@@ -2646,8 +2646,11 @@ function createGreyDudExplosion(x, y) {
 
         } // End of initializeGame function
 
-        // Show startup screen first
-        showStartupScreen();
+        // COMMENTED OUT: Title screen temporarily disabled
+        // showStartupScreen();
+        
+        // Start game directly without title screen
+        initializeGame();
 
       });
     </script>
