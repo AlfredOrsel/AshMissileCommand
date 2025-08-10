@@ -168,6 +168,13 @@
                   </div>
                 </div>
                 <div class="debug-section">
+                  <label class="debug-label">Enemy Rocket Frequency</label>
+                  <div class="slider-container">
+                    <input type="range" id="enemyFrequencySlider" min="1" max="10" step="1" value="${Math.round((600 - enemyRocketInterval) / (600 - 180) * 9 + 1)}" class="debug-slider">
+                    <span class="slider-value">${(enemyRocketInterval / 60).toFixed(1)}s</span>
+                  </div>
+                </div>
+                <div class="debug-section">
                   <label class="debug-label">Friendly Rocket Speed</label>
                   <div class="slider-container">
                     <input type="range" id="friendlySpeedSlider" min="3" max="12" step="1" value="${friendlyRocketSpeed}" class="debug-slider">
@@ -206,7 +213,7 @@
               left: ${moonScreenX - 250}px;
               top: ${moonScreenY + 50}px;
               width: 300px;
-              padding: 20px 24px;
+              padding: 12px 24px;
               background: linear-gradient(135deg, #1a1a2e 0%, #2a2a3e 100%);
               border: 3px solid #00ccff;
               border-radius: 16px;
@@ -225,23 +232,23 @@
             const style = document.createElement('style');
             style.textContent = `
               .debug-title {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
                 color: #00ccff;
                 text-align: center;
-                margin-bottom: 16px;
+                margin-bottom: 10px;
                 text-shadow: 0 0 8px rgba(0, 204, 255, 0.6);
                 letter-spacing: 0.05em;
               }
               
               .debug-section {
-                margin-bottom: 12px;
+                margin-bottom: 8px;
               }
               
               .debug-label {
                 display: block;
-                font-size: 0.95rem;
+                font-size: 0.9rem;
                 color: #ffffff;
-                margin-bottom: 8px;
+                margin-bottom: 4px;
                 text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
               }
               
@@ -350,8 +357,8 @@
               .debug-group {
                 border: 2px solid rgba(255, 255, 255, 0.3);
                 border-radius: 8px;
-                padding: 16px 12px 12px 12px;
-                margin: 12px 0;
+                padding: 10px 12px 8px 12px;
+                margin: 8px 0;
                 background: rgba(255, 255, 255, 0.05);
               }
               
@@ -377,14 +384,17 @@
             const enemySpeedSlider = document.getElementById('enemySpeedSlider');
             const enemySpeedDisplay = debugMenuElement.querySelectorAll('.slider-value')[1];
             
+            const enemyFrequencySlider = document.getElementById('enemyFrequencySlider');
+            const enemyFrequencyDisplay = debugMenuElement.querySelectorAll('.slider-value')[2];
+            
             const friendlySpeedSlider = document.getElementById('friendlySpeedSlider');
-            const friendlySpeedDisplay = debugMenuElement.querySelectorAll('.slider-value')[2];
+            const friendlySpeedDisplay = debugMenuElement.querySelectorAll('.slider-value')[3];
             
             const starCountSlider = document.getElementById('starCountSlider');
-            const starCountDisplay = debugMenuElement.querySelectorAll('.slider-value')[3];
+            const starCountDisplay = debugMenuElement.querySelectorAll('.slider-value')[4];
             
             const searchlightWidthSlider = document.getElementById('searchlightWidthSlider');
-            const searchlightWidthDisplay = debugMenuElement.querySelectorAll('.slider-value')[4];
+            const searchlightWidthDisplay = debugMenuElement.querySelectorAll('.slider-value')[5];
             
             slider.addEventListener('input', function(e) {
               const newValue = parseInt(e.target.value);
@@ -396,6 +406,15 @@
               const newValue = parseFloat(e.target.value);
               enemyRocketSpeed = newValue;
               enemySpeedDisplay.textContent = newValue.toFixed(2);
+            });
+            
+            enemyFrequencySlider.addEventListener('input', function(e) {
+              const sliderValue = parseInt(e.target.value);
+              // Convert slider value (1-10) to frame interval (600-180)
+              // Slider 1 = 600 frames (10s), Slider 10 = 180 frames (3s)
+              // Higher slider value = more frequent = shorter interval
+              enemyRocketInterval = 600 - (sliderValue - 1) * (600 - 180) / 9;
+              enemyFrequencyDisplay.textContent = (enemyRocketInterval / 60).toFixed(1) + 's';
             });
             
             friendlySpeedSlider.addEventListener('input', function(e) {
