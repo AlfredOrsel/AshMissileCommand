@@ -168,6 +168,9 @@
               <div class="debug-section">
                 <button id="debugStartRound" class="debug-start-btn">🚀 Start Round</button>
               </div>
+              <div class="debug-section">
+                <button id="debugStopRound" class="debug-stop-btn">⏹️ Stop Round</button>
+              </div>
             `;
             
             // Style the debug menu
@@ -288,6 +291,34 @@
                 transform: translateY(0px);
                 box-shadow: 0 2px 8px rgba(0, 204, 255, 0.4);
               }
+              
+              .debug-stop-btn {
+                width: 100%;
+                padding: 12px 20px;
+                background: linear-gradient(90deg, #ff4444 0%, #cc0000 100%);
+                color: #ffffff;
+                border: 2px solid #ffffff;
+                border-radius: 12px;
+                font-size: 1.1rem;
+                font-weight: bold;
+                font-family: monospace;
+                cursor: pointer;
+                margin-top: 8px;
+                box-shadow: 0 4px 16px rgba(255, 68, 68, 0.4);
+                transition: all 0.2s ease;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+              }
+              
+              .debug-stop-btn:hover {
+                background: linear-gradient(90deg, #cc0000 0%, #ff4444 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px rgba(255, 68, 68, 0.6);
+              }
+              
+              .debug-stop-btn:active {
+                transform: translateY(0px);
+                box-shadow: 0 2px 8px rgba(255, 68, 68, 0.4);
+              }
             `;
             document.head.appendChild(style);
             
@@ -295,6 +326,7 @@
             const slider = document.getElementById('roundDurationSlider');
             const valueDisplay = debugMenuElement.querySelector('.slider-value');
             const startBtn = document.getElementById('debugStartRound');
+            const stopBtn = document.getElementById('debugStopRound');
             
             const enemySpeedSlider = document.getElementById('enemySpeedSlider');
             const enemySpeedDisplay = debugMenuElement.querySelectorAll('.slider-value')[1];
@@ -316,6 +348,13 @@
               hideDebugMenu();
               // Call the existing startRound function
               startRound();
+            });
+            
+            stopBtn.addEventListener('click', function() {
+              // Hide debug menu when stopping round
+              hideDebugMenu();
+              // Call the new stopRound function
+              stopRound();
             });
             
             debugMenuVisible = true;
@@ -1313,6 +1352,37 @@ let enemyRocketInterval = 180; // frames between enemy rockets (3s at 60fps) - h
           destroyedBuildings = Array(buildingCenters.length).fill(false);
           hideRoundFinishedText();
           startRoundBtn.style.display = 'none';
+        }
+
+        // Stop round handler (same logic as when timer reaches duration)
+        function stopRound() {
+          // Only stop if a round is actually active
+          if (!roundActive) return;
+          
+          // Destroy all remaining enemy rockets AS IF hit by friendly rockets (counts toward score)
+          const remainingEnemyRockets = rockets.filter(r => !r.isPlayerRocket);
+          for (const rocket of remainingEnemyRockets) {
+            // Use the existing destroyEnemyRocketByPlayer function to get proper scoring and effects
+            destroyEnemyRocketByPlayer(rocket, false);
+          }
+          
+          // End round logic
+          roundActive = false;
+          roundPause = true;
+          
+          // Show round finished text and calculate score
+          const pointsPerRocket = 100;
+          const pointsPerBuilding = -200;
+          const rocketsPoints = rocketsDestroyed * pointsPerRocket;
+          const buildingsPoints = buildingsDestroyed * pointsPerBuilding;
+          playerScore += rocketsPoints + buildingsPoints;
+          scoreDiv.textContent = `Score: ${playerScore}`;
+          showRoundFinishedText(roundNumber);
+          
+          // Prepare for next round
+          roundNumber++;
+          startRoundBtn.textContent = `Start round ${roundNumber}`;
+          startRoundBtn.style.display = 'block';
         }
 
         startRoundBtn.addEventListener('click', () => {
