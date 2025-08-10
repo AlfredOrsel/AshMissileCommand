@@ -175,6 +175,23 @@
                   </div>
                 </div>
               </fieldset>
+              <fieldset class="debug-group">
+                <legend class="group-legend">Visuals</legend>
+                <div class="debug-section">
+                  <label class="debug-label">Star Count</label>
+                  <div class="slider-container">
+                    <input type="range" id="starCountSlider" min="16" max="64" step="4" value="${starCount}" class="debug-slider">
+                    <span class="slider-value">${starCount}</span>
+                  </div>
+                </div>
+                <div class="debug-section">
+                  <label class="debug-label">Searchlight Width</label>
+                  <div class="slider-container">
+                    <input type="range" id="searchlightWidthSlider" min="60" max="240" step="20" value="${searchlightWidth}" class="debug-slider">
+                    <span class="slider-value">${searchlightWidth}</span>
+                  </div>
+                </div>
+              </fieldset>
               <div class="debug-section">
                 <button id="debugStartRound" class="debug-start-btn">🚀 Start Round</button>
               </div>
@@ -363,6 +380,12 @@
             const friendlySpeedSlider = document.getElementById('friendlySpeedSlider');
             const friendlySpeedDisplay = debugMenuElement.querySelectorAll('.slider-value')[2];
             
+            const starCountSlider = document.getElementById('starCountSlider');
+            const starCountDisplay = debugMenuElement.querySelectorAll('.slider-value')[3];
+            
+            const searchlightWidthSlider = document.getElementById('searchlightWidthSlider');
+            const searchlightWidthDisplay = debugMenuElement.querySelectorAll('.slider-value')[4];
+            
             slider.addEventListener('input', function(e) {
               const newValue = parseInt(e.target.value);
               roundDuration = newValue * 60; // Convert to frames (60fps)
@@ -379,6 +402,18 @@
               const newValue = parseInt(e.target.value);
               friendlyRocketSpeed = newValue;
               friendlySpeedDisplay.textContent = newValue;
+            });
+            
+            starCountSlider.addEventListener('input', function(e) {
+              const newValue = parseInt(e.target.value);
+              starCount = newValue;
+              starCountDisplay.textContent = newValue;
+            });
+            
+            searchlightWidthSlider.addEventListener('input', function(e) {
+              const newValue = parseInt(e.target.value);
+              searchlightWidth = newValue;
+              searchlightWidthDisplay.textContent = newValue;
             });
             
             startBtn.addEventListener('click', function() {
@@ -1175,7 +1210,7 @@
           const beamBaseY = bottomY - bunkerHeight - 10; // roof top
           const beamBaseX = centerX;
           const beamBaseWidth = 4;
-          const beamTopWidth = 120;
+          const beamTopWidth = searchlightWidth;
           const beamAlpha = 0.13;
           // Animate angle (in radians)
           const angle = window._searchlightState.angle || 0;
@@ -1270,12 +1305,12 @@ let roundDuration = 60 * 30; // 30 seconds at 60fps
         // Scoring and round stats
         let rocketsDestroyed = 0;
         let buildingsDestroyed = 0;
-let enemyRocketInterval = 180; // frames between enemy rockets (3s at 60fps) - half frequency
+        let enemyRocketInterval = 180; // frames between enemy rockets (3s at 60fps) - half frequency
         let enemyRocketFrameCounter = 0;
         let enemyRocketSpeed = 0.75; // Current enemy rocket speed (0.75 to 3.0)
         let friendlyRocketSpeed = 6; // Current friendly rocket speed (3 to 12)
-
-        // --- PLAYER SCORE AND ROUND TIMER UI ---
+        let starCount = 32; // Current star count (16 to 64)
+        let searchlightWidth = 120; // Current searchlight beam width (60 to 240)        // --- PLAYER SCORE AND ROUND TIMER UI ---
         let playerScore = 0;
         // Score display (smaller, green, closer to top)
         const scoreDiv = document.createElement('div');
