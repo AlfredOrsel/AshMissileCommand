@@ -1310,7 +1310,7 @@ let roundDuration = 60 * 30; // 30 seconds at 60fps
         let enemyRocketSpeed = 0.75; // Current enemy rocket speed (0.75 to 3.0)
         let friendlyRocketSpeed = 6; // Current friendly rocket speed (3 to 12)
         let starCount = 32; // Current star count (16 to 64)
-        let searchlightWidth = 120; // Current searchlight beam width (60 to 240)        // --- PLAYER SCORE AND ROUND TIMER UI ---
+        let searchlightWidth = 160; // Current searchlight beam width (60 to 240)        // --- PLAYER SCORE AND ROUND TIMER UI ---
         let playerScore = 0;
         // Score display (smaller, green, closer to top)
         const scoreDiv = document.createElement('div');
@@ -2173,8 +2173,8 @@ function createGreyDudExplosion(x, y) {
               const dx = rocket.x - rocket.targetX;
               const dy = rocket.y - rocket.targetY;
               if (Math.sqrt(dx * dx + dy * dy) < 8) {
-                // Create a large growing spark cloud at mouse target (200 particles, smaller, flicker)
-                createGrowingSparkCloud(rocket.targetX, rocket.targetY, 50, 200, 120, rocket.explosionId); // Pass explosionId for combo tracking
+                // Create a large growing spark cloud at mouse target (400 particles, smaller, flicker)
+                createGrowingSparkCloud(rocket.targetX, rocket.targetY, 50, 400, 120, rocket.explosionId); // Pass explosionId for combo tracking
                 app.stage.removeChild(rocket);
                 rocket.trail.forEach(trail => app.stage.removeChild(trail));
                 rockets.splice(i, 1);
@@ -2254,9 +2254,9 @@ function createGreyDudExplosion(x, y) {
               const r = easeT * particle.growDistance;
               particle.x = particle.growCenterX + Math.cos(particle.growAngle) * r;
               particle.y = particle.growCenterY + Math.sin(particle.growAngle) * r;
-              // Flicker like sparkle
+              // Flicker like sparkle (75% visible bias)
               particle.twinkle += 0.3;
-              const flicker = 0.5 + 0.5 * Math.sin(particle.twinkle);
+              const flicker = 0.75 + 0.25 * Math.sin(particle.twinkle);
               particle.alpha = (1.0 - t * 0.7) * flicker;
               // Remove after duration
               if (particle.growFrame >= particle.growDuration) {
