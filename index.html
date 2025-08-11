@@ -586,17 +586,66 @@
 
           // Performance Menu Functions
           let performanceMenuElement = null;
+          let difficultyMenuElement = null;
           let performanceMenuVisible = false;
 
           function showPerformanceMenu() {
             if (performanceMenuElement) {
               performanceMenuElement.remove();
             }
+            if (difficultyMenuElement) {
+              difficultyMenuElement.remove();
+            }
             
             // Get moon position
             const moonPos = window.moon;
             const moonScreenX = moonPos.x;
             const moonScreenY = moonPos.y;
+            
+            // Create difficulty menu container
+            difficultyMenuElement = document.createElement('div');
+            difficultyMenuElement.id = 'difficultyMenu';
+            difficultyMenuElement.innerHTML = `
+              <div class="debug-title">⚔️ DIFFICULTY</div>
+              <fieldset class="debug-group">
+                <legend class="group-legend">Game Difficulty</legend>
+                <div class="debug-section">
+                  <label class="debug-label">Placeholder Setting 1</label>
+                  <div class="slider-container">
+                    <input type="range" id="placeholderSlider1" min="1" max="10" step="1" value="5" class="debug-slider">
+                    <span class="slider-value">5</span>
+                  </div>
+                </div>
+                <div class="debug-section">
+                  <label class="debug-label">Placeholder Setting 2</label>
+                  <div class="slider-container">
+                    <input type="range" id="placeholderSlider2" min="1" max="10" step="1" value="5" class="debug-slider">
+                    <span class="slider-value">5</span>
+                  </div>
+                </div>
+              </fieldset>
+            `;
+            
+            // Style the difficulty menu (positioned to the left of performance menu)
+            difficultyMenuElement.style.cssText = `
+              position: fixed;
+              left: ${moonScreenX - 970}px;
+              top: ${moonScreenY + 50}px;
+              width: 300px;
+              padding: 12px 24px;
+              background: linear-gradient(135deg, #1a1a2e 0%, #2a2a3e 100%);
+              border: 3px solid #00ccff;
+              border-radius: 16px;
+              box-shadow: 0 8px 32px rgba(0, 204, 255, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+              color: #ffffff;
+              font-family: monospace, 'Courier New', monospace;
+              font-weight: bold;
+              z-index: 3000;
+              backdrop-filter: blur(8px);
+              user-select: none;
+            `;
+            
+            document.body.appendChild(difficultyMenuElement);
             
             // Create performance menu container
             performanceMenuElement = document.createElement('div');
@@ -669,6 +718,10 @@
             if (performanceMenuElement) {
               performanceMenuElement.remove();
               performanceMenuElement = null;
+            }
+            if (difficultyMenuElement) {
+              difficultyMenuElement.remove();
+              difficultyMenuElement = null;
             }
             performanceMenuVisible = false;
           }
