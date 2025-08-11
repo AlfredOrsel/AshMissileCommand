@@ -2193,7 +2193,7 @@ let comboTextSprite = null;
           app.stage.addChild(stem);
           
           let stemFrame = 0;
-          const stemDuration = 300;
+          const stemDuration = 90; // Even faster growth (was 150 = 2.5 seconds, now 90 = 1.5 seconds)
           const stemHeight = 200;
           const stemWidth = 40;
           
@@ -2203,23 +2203,84 @@ let comboTextSprite = null;
             const currentHeight = stemHeight * progress;
             
             stem.clear();
-            stem.beginFill(0x666666, 0.8);
-            stem.drawRect(-stemWidth/2, -currentHeight, stemWidth, currentHeight);
-            stem.endFill();
             
-            // Add glow
-            stem.lineStyle(4, 0xFF4400, 0.6);
-            stem.drawRect(-stemWidth/2, -currentHeight, stemWidth, currentHeight);
+            // Create particle-based mushroom stem
+            const particlesPerLayer = 8;
+            const layerCount = Math.floor(currentHeight / 8); // One layer every 8 pixels
+            
+            for (let layer = 0; layer < layerCount; layer++) {
+              const layerY = -layer * 8; // Moving upward
+              const layerProgress = layer / Math.max(layerCount - 1, 1);
+              
+              // Stem widens as it goes up (starts narrow, gets wider)
+              const baseWidth = stemWidth / 2;
+              const currentWidth = baseWidth + (layerProgress * baseWidth * 1.5);
+              
+              // Create particles for this layer
+              for (let p = 0; p < particlesPerLayer; p++) {
+                const particle = new PIXI.Graphics();
+                
+                // Random position within the widening stem
+                const xOffset = (Math.random() - 0.5) * currentWidth;
+                const yJitter = (Math.random() - 0.5) * 4; // Small vertical variation
+                
+                // Hot glowing colors - red, orange, white
+                const colorRand = Math.random();
+                let color;
+                if (colorRand < 0.2) {
+                  color = 0xFFFFFF; // White (hottest)
+                } else if (colorRand < 0.5) {
+                  color = 0xFFFF88; // Light yellow
+                } else if (colorRand < 0.8) {
+                  color = 0xFF8800; // Orange
+                } else {
+                  color = 0xFF4400; // Red-orange
+                }
+                
+                // Particle size varies
+                const size = 1.5 + Math.random() * 2.5;
+                
+                // Alpha decreases with height and adds some variation
+                const heightAlpha = 1 - (layerProgress * 0.6);
+                const alpha = heightAlpha * (0.6 + Math.random() * 0.4);
+                
+                particle.beginFill(color, alpha);
+                particle.drawCircle(xOffset, layerY + yJitter, size);
+                particle.endFill();
+                
+                // Add some glow effect for hot particles
+                if (colorRand < 0.4) { // White and yellow particles get glow
+                  particle.beginFill(color, alpha * 0.3);
+                  particle.drawCircle(xOffset, layerY + yJitter, size * 2);
+                  particle.endFill();
+                }
+                
+                stem.addChild(particle);
+              }
+            }
+            
+            // Add some wispy effects at the top
+            if (currentHeight > 100) {
+              const wispCount = 6;
+              for (let w = 0; w < wispCount; w++) {
+                const wispY = -currentHeight + (Math.random() * 20);
+                const wispX = (Math.random() - 0.5) * (stemWidth * 2);
+                const wispSize = 3 + Math.random() * 4;
+                const wispAlpha = 0.3 + Math.random() * 0.3;
+                
+                stem.beginFill(0x888888, wispAlpha);
+                stem.drawCircle(wispX, wispY, wispSize);
+                stem.endFill();
+              }
+            }
             
             if (stemFrame < stemDuration) {
               requestAnimationFrame(animateStem);
-            } else {
-              // Create mushroom cloud top
-              createMushroomCloudTop(explosionX, explosionY - stemHeight);
             }
+            // Mushroom cloud top removed - stem animation completes without creating cloud top
           };
           
-          setTimeout(() => animateStem(), 1000); // Delay stem appearance
+          setTimeout(() => animateStem(), 0); // Start stem immediately with explosion (was 300ms)
           
           // Create massive particle explosions
           const particleBursts = [
@@ -2301,42 +2362,6 @@ let comboTextSprite = null;
           animateFlash();
         }
         
-        // Create mushroom cloud top
-        function createMushroomCloudTop(x, y) {
-          const cloud = new PIXI.Graphics();
-          cloud.x = x;
-          cloud.y = y;
-          app.stage.addChild(cloud);
-          
-          let cloudFrame = 0;
-          const cloudDuration = 400;
-          const maxRadius = 120;
-          
-          const animateCloud = () => {
-            cloudFrame++;
-            const progress = cloudFrame / cloudDuration;
-            const radius = maxRadius * progress;
-            
-            cloud.clear();
-            // Create billowy mushroom shape
-            cloud.beginFill(0x444444, 0.8);
-            cloud.drawCircle(0, 0, radius);
-            cloud.drawCircle(-radius * 0.3, -radius * 0.1, radius * 0.7);
-            cloud.drawCircle(radius * 0.3, -radius * 0.1, radius * 0.7);
-            cloud.drawCircle(0, -radius * 0.3, radius * 0.8);
-            cloud.endFill();
-            
-            // Add orange glow
-            cloud.lineStyle(3, 0xFF6600, 0.5);
-            cloud.drawCircle(0, 0, radius);
-            
-            if (cloudFrame < cloudDuration) {
-              requestAnimationFrame(animateCloud);
-            }
-          };
-          animateCloud();
-        }
-
         // Add keyboard event listener for 'K' key to trigger nuclear explosion
         document.addEventListener('keydown', (event) => {
           if (event.key.toLowerCase() === 'k') {
