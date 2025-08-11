@@ -1949,22 +1949,55 @@ let comboTextSprite = null;
           const explosionX = centerX;
           const explosionY = bottomY;
           
-          // Create massive shockwave ring
-          function createShockwaveRing(radius, duration, color, thickness = 8) {
+          // Create massive shockwave ring with smooth fireball gradient
+          function createShockwaveRing(radius, duration, centerColor, outerColor, thickness = 8) {
             const ring = new PIXI.Graphics();
             ring.x = explosionX;
             ring.y = explosionY;
-            ring.lineStyle(thickness, color, 1.0);
-            ring.drawCircle(0, 0, radius);
-            ring.alpha = 0.8;
+            
+            // Create many more concentric rings for ultra-smooth gradient
+            const gradientSteps = 20;
+            for (let i = 0; i < gradientSteps; i++) {
+              const stepProgress = i / (gradientSteps - 1);
+              const stepRadius = radius + (thickness * stepProgress * 2); // Spread gradient wider
+              const stepThickness = thickness / (gradientSteps * 0.8); // Thinner rings for smoother blend
+              
+              // Smooth interpolation between center and outer color
+              const r1 = (centerColor >> 16) & 0xFF;
+              const g1 = (centerColor >> 8) & 0xFF;
+              const b1 = centerColor & 0xFF;
+              const r2 = (outerColor >> 16) & 0xFF;
+              const g2 = (outerColor >> 8) & 0xFF;
+              const b2 = outerColor & 0xFF;
+              
+              // Use smooth curve for color transition (ease-out)
+              const easedProgress = 1 - Math.pow(1 - stepProgress, 2);
+              const r = Math.round(r1 + (r2 - r1) * easedProgress);
+              const g = Math.round(g1 + (g2 - g1) * easedProgress);
+              const b = Math.round(b1 + (b2 - b1) * easedProgress);
+              const color = (r << 16) | (g << 8) | b;
+              
+              // Smooth alpha falloff for fireball effect
+              const alpha = 0.9 * Math.pow(1 - stepProgress, 1.5); // Exponential falloff
+              
+              ring.lineStyle(stepThickness, color, alpha);
+              ring.drawCircle(0, 0, stepRadius);
+            }
+            
             app.stage.addChild(ring);
             
             let frame = 0;
             const animate = () => {
               frame++;
               const progress = frame / duration;
-              ring.scale.set(1 + progress * 3); // Expand ring
-              ring.alpha = 0.8 * (1 - progress); // Fade out
+              
+              // Slower, more dramatic expansion with slight retraction
+              const expansionCurve = Math.sin(progress * Math.PI * 0.8); // Sine wave for expansion/retraction
+              ring.scale.set(1 + expansionCurve * 2.5); // Slower, more dramatic scaling
+              
+              // Slower fade out
+              ring.alpha = 0.9 * Math.pow(1 - progress, 0.8);
+              
               if (frame < duration) {
                 requestAnimationFrame(animate);
               } else {
@@ -1974,11 +2007,95 @@ let comboTextSprite = null;
             animate();
           }
           
-          // Create multiple shockwave rings with delays
-          setTimeout(() => createShockwaveRing(50, 120, 0xFFFFFF, 12), 0);
-          setTimeout(() => createShockwaveRing(80, 150, 0xFFFF00, 10), 300);
-          setTimeout(() => createShockwaveRing(120, 180, 0xFF8800, 8), 600);
-          setTimeout(() => createShockwaveRing(200, 240, 0xFF4400, 6), 900);
+          // Create smooth gradient shockwave with many thin rings
+          function createSmoothGradientShockwave() {
+            const shockwave = new PIXI.Graphics();
+            shockwave.x = explosionX;
+            shockwave.y = explosionY;
+            app.stage.addChild(shockwave);
+            
+            let frame = 0;
+            const duration = 500;
+            const maxRadius = 300;
+            const ringCount = 150; // Many thin rings for smooth gradient
+            
+            const animate = () => {
+              frame++;
+              const progress = frame / duration;
+              
+              shockwave.clear();
+              
+              // Current expansion size
+              const currentRadius = maxRadius * Math.sin(progress * Math.PI * 0.8);
+              
+              // Create many thin concentric rings
+              for (let i = 0; i < ringCount; i++) {
+                const ringProgress = i / (ringCount - 1);
+                const ringRadius = currentRadius * (1 - ringProgress);
+                
+                if (ringRadius <= 0) continue;
+                
+                // Smooth color transition: White (center) -> Yellow -> Orange -> Red -> Dark Red (edge)
+                let r, g, b, alpha;
+                
+                if (ringProgress < 0.15) {
+                  // White to bright yellow (hottest center)
+                  const t = ringProgress / 0.15;
+                  r = 255;
+                  g = 255;
+                  b = Math.floor(255 * (1 - t * 0.8));
+                  alpha = 0.95;
+                } else if (ringProgress < 0.35) {
+                  // Yellow to orange
+                  const t = (ringProgress - 0.15) / 0.2;
+                  r = 255;
+                  g = Math.floor(255 - t * 100);
+                  b = 0;
+                  alpha = 0.9;
+                } else if (ringProgress < 0.65) {
+                  // Orange to red
+                  const t = (ringProgress - 0.35) / 0.3;
+                  r = 255;
+                  g = Math.floor(155 - t * 155);
+                  b = 0;
+                  alpha = 0.8;
+                } else if (ringProgress < 0.85) {
+                  // Red to dark red
+                  const t = (ringProgress - 0.65) / 0.2;
+                  r = Math.floor(255 - t * 80);
+                  g = 0;
+                  b = 0;
+                  alpha = 0.7;
+                } else {
+                  // Dark red to transparent (outer edge)
+                  const t = (ringProgress - 0.85) / 0.15;
+                  r = Math.floor(175 - t * 100);
+                  g = 0;
+                  b = 0;
+                  alpha = 0.6 * (1 - t);
+                }
+                
+                // Apply overall animation fade
+                alpha *= Math.pow(1 - progress, 0.7);
+                
+                const color = (r << 16) | (g << 8) | b;
+                
+                // Very thin rings (1-2 pixels) for smooth gradient
+                shockwave.lineStyle(2, color, alpha);
+                shockwave.drawCircle(0, 0, ringRadius);
+              }
+              
+              if (frame < duration) {
+                requestAnimationFrame(animate);
+              } else {
+                app.stage.removeChild(shockwave);
+              }
+            };
+            animate();
+          }
+          
+          // Create the smooth gradient shockwave
+          setTimeout(() => createSmoothGradientShockwave(), 0);
           
           // Create massive fireball
           const fireball = new PIXI.Graphics();
@@ -1997,20 +2114,69 @@ let comboTextSprite = null;
             
             fireball.clear();
             
-            // Multiple gradient layers for nuclear effect
-            const layers = [
-              { radius: radius * 1.0, color: 0xFFFFFF, alpha: 0.9 },
-              { radius: radius * 0.8, color: 0xFFFF88, alpha: 0.8 },
-              { radius: radius * 0.6, color: 0xFF8800, alpha: 0.7 },
-              { radius: radius * 0.4, color: 0xFF4400, alpha: 0.6 },
-              { radius: radius * 0.2, color: 0xFF0000, alpha: 0.5 }
-            ];
+            // Smooth gradient fireball with many thin layers
+            const gradientSteps = 80; // Many steps for ultra-smooth gradient
             
-            layers.forEach(layer => {
-              fireball.beginFill(layer.color, layer.alpha * (1 - progress * 0.5));
-              fireball.drawCircle(0, 0, layer.radius);
+            for (let i = 0; i < gradientSteps; i++) {
+              const stepProgress = i / (gradientSteps - 1);
+              const stepRadius = radius * (1 - stepProgress);
+              
+              if (stepRadius <= 0) continue;
+              
+              // Smooth color transition from center outward
+              let r, g, b, alpha;
+              
+              if (stepProgress < 0.1) {
+                // Brilliant white center (hottest)
+                r = 255;
+                g = 255;
+                b = 255;
+                alpha = 0.95;
+              } else if (stepProgress < 0.25) {
+                // White to bright yellow
+                const t = (stepProgress - 0.1) / 0.15;
+                r = 255;
+                g = 255;
+                b = Math.floor(255 * (1 - t * 0.7));
+                alpha = 0.9;
+              } else if (stepProgress < 0.45) {
+                // Yellow to orange
+                const t = (stepProgress - 0.25) / 0.2;
+                r = 255;
+                g = Math.floor(255 - t * 80);
+                b = Math.floor(76 - t * 76);
+                alpha = 0.85;
+              } else if (stepProgress < 0.7) {
+                // Orange to red
+                const t = (stepProgress - 0.45) / 0.25;
+                r = 255;
+                g = Math.floor(175 - t * 107);
+                b = 0;
+                alpha = 0.8;
+              } else if (stepProgress < 0.9) {
+                // Red to dark red
+                const t = (stepProgress - 0.7) / 0.2;
+                r = Math.floor(255 - t * 87);
+                g = Math.floor(68 - t * 68);
+                b = 0;
+                alpha = 0.7;
+              } else {
+                // Dark red to transparent (outer edge)
+                const t = (stepProgress - 0.9) / 0.1;
+                r = Math.floor(168 - t * 100);
+                g = 0;
+                b = 0;
+                alpha = 0.6 * (1 - t);
+              }
+              
+              // Apply animation fade
+              alpha *= (1 - progress * 0.5);
+              
+              const color = (r << 16) | (g << 8) | b;
+              fireball.beginFill(color, alpha);
+              fireball.drawCircle(0, 0, stepRadius);
               fireball.endFill();
-            });
+            }
             
             if (fireballFrame < fireballDuration) {
               requestAnimationFrame(animateFireball);
