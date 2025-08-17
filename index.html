@@ -2186,41 +2186,6 @@ let comboTextSprite = null;
           };
           animateFireball();
           
-          // Create mushroom cloud stem
-          const stem = new PIXI.Graphics();
-          stem.x = explosionX;
-          stem.y = explosionY;
-          app.stage.addChild(stem);
-          
-          let stemFrame = 0;
-          const stemDuration = 300;
-          const stemHeight = 200;
-          const stemWidth = 40;
-          
-          const animateStem = () => {
-            stemFrame++;
-            const progress = stemFrame / stemDuration;
-            const currentHeight = stemHeight * progress;
-            
-            stem.clear();
-            stem.beginFill(0x666666, 0.8);
-            stem.drawRect(-stemWidth/2, -currentHeight, stemWidth, currentHeight);
-            stem.endFill();
-            
-            // Add glow
-            stem.lineStyle(4, 0xFF4400, 0.6);
-            stem.drawRect(-stemWidth/2, -currentHeight, stemWidth, currentHeight);
-            
-            if (stemFrame < stemDuration) {
-              requestAnimationFrame(animateStem);
-            } else {
-              // Create mushroom cloud top
-              createMushroomCloudTop(explosionX, explosionY - stemHeight);
-            }
-          };
-          
-          setTimeout(() => animateStem(), 1000); // Delay stem appearance
-          
           // Create massive particle explosions
           const particleBursts = [
             { delay: 0, count: 2000, speed: 8, life: 300 },
@@ -2301,42 +2266,6 @@ let comboTextSprite = null;
           animateFlash();
         }
         
-        // Create mushroom cloud top
-        function createMushroomCloudTop(x, y) {
-          const cloud = new PIXI.Graphics();
-          cloud.x = x;
-          cloud.y = y;
-          app.stage.addChild(cloud);
-          
-          let cloudFrame = 0;
-          const cloudDuration = 400;
-          const maxRadius = 120;
-          
-          const animateCloud = () => {
-            cloudFrame++;
-            const progress = cloudFrame / cloudDuration;
-            const radius = maxRadius * progress;
-            
-            cloud.clear();
-            // Create billowy mushroom shape
-            cloud.beginFill(0x444444, 0.8);
-            cloud.drawCircle(0, 0, radius);
-            cloud.drawCircle(-radius * 0.3, -radius * 0.1, radius * 0.7);
-            cloud.drawCircle(radius * 0.3, -radius * 0.1, radius * 0.7);
-            cloud.drawCircle(0, -radius * 0.3, radius * 0.8);
-            cloud.endFill();
-            
-            // Add orange glow
-            cloud.lineStyle(3, 0xFF6600, 0.5);
-            cloud.drawCircle(0, 0, radius);
-            
-            if (cloudFrame < cloudDuration) {
-              requestAnimationFrame(animateCloud);
-            }
-          };
-          animateCloud();
-        }
-
         // Add keyboard event listener for 'K' key to trigger nuclear explosion
         document.addEventListener('keydown', (event) => {
           if (event.key.toLowerCase() === 'k') {
