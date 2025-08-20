@@ -193,7 +193,7 @@
             // Position: top right, with some margin
             const margin = Math.min(app.screen.width, app.screen.height) * 0.07;
             const moonRadius = Math.min(app.screen.width, app.screen.height) * 0.035; // even smaller
-              const biggerMoonRadius = moonRadius * 1.38;
+                const biggerMoonRadius = moonRadius * 1.18;
               const moonX = app.screen.width - margin - biggerMoonRadius;
               const moonY = margin + biggerMoonRadius;
               // Glow (less bright, same radius)
@@ -201,7 +201,7 @@
               for (let r = biggerMoonRadius * 2.0; r > biggerMoonRadius; r -= 1.0) {
                 const t = (r - biggerMoonRadius) / (biggerMoonRadius * 1.0);
                 // Start less bright, fade outward
-                const alpha = 0.18 * Math.pow(1 - t, 2.8); // less bright at inner edge, same radius
+                const alpha = 0.12 * Math.pow(1 - t, 2.8); // less bright at inner edge, same radius
                 if (alpha < 0.008) continue;
                 moonGlow.beginFill(0xffffff, alpha);
                 moonGlow.drawCircle(0, 0, r);
@@ -212,7 +212,7 @@
               moonContainer.addChild(moonGlow);
             // Core (main moon disk)
             const moonCore = new PIXI.Graphics();
-            moonCore.beginFill(0xffffff, 0.38);
+            moonCore.beginFill(0xffffff, 0.18);
             moonCore.drawCircle(0, 0, biggerMoonRadius);
             moonCore.endFill();
             moonCore.x = 0;
